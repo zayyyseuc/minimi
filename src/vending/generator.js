@@ -5,7 +5,7 @@ require('dotenv').config();
 const { looksLikeExtractionAttempt, cleanText } = require('./privacy');
 const { getBehavioralProfile, getPublicFacts, getPublicSources, getPublicBasis } = require('./public-profile');
 
-const PROMPT_VERSION = 'vending-products-v3-public-portfolio';
+const PROMPT_VERSION = 'vending-products-v4-decisive-judgment';
 const MODEL = process.env.VENDING_MODEL || 'deepseek-ai/DeepSeek-V4-Flash';
 
 const PRODUCTS = {
@@ -85,6 +85,28 @@ function isPersonalHistoryQuery(input) {
   ].some(pattern => pattern.test(text));
 }
 
+function isProjectJudgmentQuery(input) {
+  const text = String(input || '').toLowerCase();
+  return [
+    /(?:project|work).{0,36}(?:like|prefer|favorite|favourite|best|strongest|weakest|least|most|rank|convincing)/,
+    /(?:like|prefer|favorite|favourite|best|strongest|weakest|least|most|rank).{0,36}(?:project|work)/,
+    /(?:项目|作品).{0,18}(?:喜欢|偏爱|最爱|最好|最强|最弱|最差|最不|排名|说服力)/,
+    /(?:喜欢|偏爱|最爱|最好|最强|最弱|最差|最不|排名).{0,18}(?:项目|作品)/,
+  ].some(pattern => pattern.test(text));
+}
+
+function projectJudgmentGuidance(language) {
+  return `\nDECISIVE PROJECT JUDGMENT MODE:
+- Treat preference language as a request for this machine's evidence-based editorial judgment, not as a request to recover Zai's undocumented private feelings.
+- Answer the requested direction immediately: the first sentence must name exactly one published project and clearly say why it is the pick.
+- Do not open with a disclaimer. Never say "I have no documented likes or dislikes", "I cannot choose", "there is not enough evidence", or equivalent wording.
+- Judge the work itself through the approved behavioral profile. Do not substitute documentation volume, "thinnest public evidence", or missing biography for design judgment.
+- Support the choice with one or two concrete public facts, then identify the decisive strength or weakness. Be candid without becoming dismissive.
+- If asked for the least-liked or weakest project, choose the project whose demonstrated interaction loop, validation, or mechanism is least convincing—not a project with fewer written details.
+- Speak as the vending machine's analytical voice. Do not present the selection as a quote, memory, or confirmed personal opinion of Zai.
+- Keep the answer compact and natural in ${language === 'zh' ? 'Chinese' : 'English'}; one clear judgment is more useful than a survey of every project.\n`;
+}
+
 function personalBoundaryArtifact(product, language) {
   const zh = language === 'zh';
   const profile = getBehavioralProfile();
@@ -125,11 +147,13 @@ async function generateProduct({ input, product, mode = 'learned' }) {
   const profile = profileForMode(mode);
   const language = primaryLanguage(input);
   const asksPersonalHistory = isPersonalHistoryQuery(input);
+  const asksProjectJudgment = mode === 'learned' && isProjectJudgmentQuery(input);
   const facts = mode === 'learned' ? getPublicFacts() : [];
   if (asksPersonalHistory && facts.length === 0) return personalBoundaryArtifact(product, language);
   const factContext = facts.length
     ? `\nOWNER-APPROVED PUBLIC FACTS (use only these facts for claims about Zai):\n${JSON.stringify(facts)}\n`
     : '';
+  const judgmentContext = asksProjectJudgment ? projectJudgmentGuidance(language) : '';
   const system = `You are the behavioral engine inside Zai Vending Machine. You generate a new response shaped by Zai's approved public practice profile.
 
 PRIVACY BOUNDARY:
@@ -144,13 +168,14 @@ PRIVACY BOUNDARY:
 
 PRODUCT: ${PRODUCTS[product].label}
 ${PRODUCTS[product].instruction}
+${judgmentContext}
 
 APPROVED BEHAVIORAL PROFILE (${profile.version}):
 ${JSON.stringify(profile.dimensions)}
 ${factContext}
 
 OUTPUT CONTRACT:
-Return only valid JSON: {"title":"2-6 word title","message":"45-140 words of plain text","behavioralTrace":["1-3 exact characteristic ids from the approved profile that materially shaped this response"],"factTrace":["0-3 exact fact ids that directly support this response"]}.
+Return only valid JSON: {"title":"2-6 word title","message":"${asksProjectJudgment ? '45-90' : '45-140'} words of plain text","behavioralTrace":["1-3 exact characteristic ids from the approved profile that materially shaped this response"],"factTrace":["0-3 exact fact ids that directly support this response"]}.
 For questions about Zai or her work, use at least one relevant public fact and return its exact id in factTrace. Never put an id in factTrace unless the response actually used that fact. No markdown, private source names, unsupported personal claims, or extra keys.`;
 
   const completion = await client().chat.completions.create({
@@ -212,4 +237,4 @@ For questions about Zai or her work, use at least one relevant public fact and r
   };
 }
 
-module.exports = { PRODUCTS, PROMPT_VERSION, GENERIC_PROFILE, generateProduct, profileForMode, primaryLanguage, isPersonalHistoryQuery, personalBoundaryArtifact };
+module.exports = { PRODUCTS, PROMPT_VERSION, GENERIC_PROFILE, generateProduct, profileForMode, primaryLanguage, isPersonalHistoryQuery, isProjectJudgmentQuery, projectJudgmentGuidance, personalBoundaryArtifact };

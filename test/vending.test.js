@@ -6,7 +6,7 @@ const path = require('path');
 const { sanitizeForApproval, sanitizeShowcase, hashShingles, checkOutputOverlap, looksLikeExtractionAttempt } = require('../src/vending/privacy');
 const { inferProfile } = require('../src/vending/learning');
 const { validInput, statusPayload } = require('../src/vending/public-api');
-const { primaryLanguage, isPersonalHistoryQuery, personalBoundaryArtifact } = require('../src/vending/generator');
+const { primaryLanguage, isPersonalHistoryQuery, isProjectJudgmentQuery, projectJudgmentGuidance, personalBoundaryArtifact } = require('../src/vending/generator');
 const publicProfile = require('../config/public-zai-profile.json');
 
 test('approval removes private rationale and retains only safe fields', () => {
@@ -81,6 +81,18 @@ test('personal-history questions are routed to the approved-facts boundary', () 
   const artifact = personalBoundaryArtifact('reality_check', 'zh');
   assert.match(artifact.message, /简历、作品集和公开网站/);
   assert.equal(artifact.behavioralTrace[0].id, 'privacy-boundary');
+});
+
+test('project preference questions trigger decisive editorial judgment', () => {
+  assert.equal(isProjectJudgmentQuery('Tell me one project that you like the least'), true);
+  assert.equal(isProjectJudgmentQuery('Which is your strongest work?'), true);
+  assert.equal(isProjectJudgmentQuery('你最不喜欢哪个项目？'), true);
+  assert.equal(isProjectJudgmentQuery('What projects have you built?'), false);
+
+  const guidance = projectJudgmentGuidance('en');
+  assert.match(guidance, /first sentence must name exactly one published project/);
+  assert.match(guidance, /Do not open with a disclaimer/);
+  assert.match(guidance, /Do not substitute documentation volume/);
 });
 
 test('public showcase keeps only explicitly approved bounded fields', () => {
