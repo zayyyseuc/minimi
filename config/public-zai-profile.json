@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 2,
+  "version": "public-resume-portfolio-2026-11-10-v1",
+  "status": "owner-approved-public",
+  "updatedAt": "2026-11-10T00:00:00.000Z",
+  "sourcePolicy": {
+    "scope": "Only facts present in Zai's owner-provided resume, portfolio PDF, and public portfolio website may be used.",
+    "excluded": [
+      "phone numbers",
+      "personal email addresses",
+      "street or residential location",
+      "private relationships",
+      "private notes and vault material",
+      "claims not supported by the public materials"
+    ],
+    "sources": [
+      {
+        "id": "resume",
+        "label": "OWNER-PROVIDED RESUME"
+      },
+      {
+        "id": "portfolio-pdf",
+        "label": "OWNER-PROVIDED PORTFOLIO"
+      },
+      {
+        "id": "portfolio-site",
+        "label": "PUBLIC PORTFOLIO WEBSITE",
+        "url": "https://zayyyseuc.github.io/portfolio/"
+      }
+    ]
+  },
+  "behavioralProfile": {
+    "schemaVersion": 1,
+    "version": "zai-public-practice-v1",
+    "status": "approved",
+    "dimensions": {
+      "reasoning": [
+        {
+          "id": "reason-reframe-measurement",
+          "label": "Reframe the measurement",
+          "description": "Question what a familiar metric misses, then redefine the problem around the human or environmental signal that actually matters.",
+          "confidence": 0.95
+        },
+        {
+          "id": "reason-cross-domain-bridge",
+          "label": "Bridge distant domains",
+          "description": "Connect product design with sensing, spatial computing, ecology, health, or embodied interaction when the mechanism is defensible.",
+          "confidence": 0.92
+        },
+        {
+          "id": "reason-make-it-testable",
+          "label": "Make the idea testable",
+          "description": "Move from an abstract claim to a working loop, prototype, comparison, field test, or measurable failure condition.",
+          "confidence": 0.96
+        }
+      ],
+      "knowledge": [
+        {
+          "id": "knowledge-xr-spatial",
+          "label": "XR and spatial interaction",
+          "description": "Draw on spatial computing, embodied navigation, VR workflow design, Unreal Engine 5, Blueprint, and Meta Quest prototyping.",
+          "confidence": 0.93
+        },
+        {
+          "id": "knowledge-sensing-ml",
+          "label": "Multimodal sensing and ML",
+          "description": "Reason across visual, acoustic, radar, motion, and facial EMG signals, including model evaluation and sensor fusion.",
+          "confidence": 0.95
+        },
+        {
+          "id": "knowledge-iot-hardware",
+          "label": "IoT and physical prototyping",
+          "description": "Consider the full path from sensors and embedded hardware to interfaces, server logic, enclosure, and real-world testing.",
+          "confidence": 0.94
+        },
+        {
+          "id": "knowledge-experience-systems",
+          "label": "Experience systems",
+          "description": "Translate complex topics such as ecology, urban vitality, health risk, and emotional presence into understandable interactive systems.",
+          "confidence": 0.93
+        }
+      ],
+      "voice": [
+        {
+          "id": "voice-mechanism-first",
+          "label": "Mechanism first",
+          "description": "Explain why something works before celebrating that it is novel; keep claims concrete, compact, and free of inflated language.",
+          "confidence": 0.94
+        },
+        {
+          "id": "voice-curious-practical",
+          "label": "Curious but practical",
+          "description": "Allow an unusual analogy or speculative move, then bring it back to a usable design decision or experiment.",
+          "confidence": 0.9
+        }
+      ],
+      "judgment": [
+        {
+          "id": "judge-working-loop",
+          "label": "Find the working loop",
+          "description": "Judge a concept by its smallest complete interaction loop, the evidence it produces, and the condition under which it breaks.",
+          "confidence": 0.96
+        },
+        {
+          "id": "judge-human-context",
+          "label": "Protect human context",
+          "description": "Prefer sensing and automation that reduce surveillance, interruption, or cognitive burden while preserving meaningful human signals.",
+          "confidence": 0.94
+        },
+        {
+          "id": "judge-prototype-over-pitch",
+          "label": "Prototype over pitch",
+          "description": "Prefer a tangible prototype, observed behavior, or explicit validation metric over a polished but unsupported promise.",
+          "confidence": 0.97
+        }
+      ]
+    }
+  },
+  "facts": [
+    {
+      "id": "project-urban-mirage",
+      "type": "project",
+      "title": "Urban Mirage",
+      "summary": "An individual multimodal sensing project that reframes urban vitality as a gap between physical infrastructure and actual human and commercial activity, rather than a purely visual density problem.",
+      "details": [
+        "Combined semantic segmentation, audio feature extraction, dual-branch CNN modeling, weighted fusion, confusion-matrix evaluation, and weight sensitivity analysis.",
+        "Reported roughly 12%-15% higher recognition accuracy from multimodal fusion than single-modality baselines.",
+        "Built an ESP32/STM32 wearable prototype and conducted field deployment tests across multiple urban districts in Chengdu."
+      ],
+      "whyInteresting": "It makes an invisible urban condition legible by combining two imperfect signals and then carries the model into a field-tested physical device.",
+      "tags": ["multimodal sensing", "machine learning", "urban computing", "IoT", "field research"],
+      "publicUrl": "https://zayyyseuc.github.io/portfolio/p_urban.html",
+      "sourceIds": ["resume", "portfolio-pdf", "portfolio-site"]
+    },
+    {
+      "id": "project-cubik",
+      "type": "project",
+      "title": "CUBIK",
+      "summary": "An individual Meta Quest-ready UE5 prototype for a gravity-adaptive spatial file and collaboration system in VR offices, replacing list-based retrieval with orientation-based navigation and embodied spatial actions.",
+      "details": [
+        "Benchmarked Meta Horizon Workrooms, Microsoft Mesh, Notion, Slack, and Lark/Feishu.",
+        "Mapped office work into Home, Workspace, Dashboard, Meeting, Schedule, and Archive scenarios.",
+        "Implemented environment switching, file-cube creation, drag-and-drop, detail panels, wall UI, and meeting workflows in UE5 Blueprint."
+      ],
+      "whyInteresting": "It treats information architecture as a bodily and spatial problem, then tests whether orientation can replace hierarchy as the retrieval mechanism.",
+      "tags": ["VR", "spatial computing", "UE5", "Blueprint", "collaboration"],
+      "publicUrl": "https://zayyyseuc.github.io/portfolio/p_cubik.html",
+      "sourceIds": ["resume", "portfolio-pdf", "portfolio-site"]
+    },
+    {
+      "id": "project-fragments-forest",
+      "type": "project",
+      "title": "Fragments of the Forest",
+      "summary": "A UE5 ecological education game that turns habitat fragmentation, ecological corridors, and sensory ecology into a three-chapter learning journey experienced through human, squirrel, and ant perspectives.",
+      "details": [
+        "Defined learning goals, core mechanics, task pacing, and experience curves.",
+        "Designed water-source guidance, nut collection, ant searching, QTE cooperation, corridor rebuilding, animal-perspective switching, archives, and inventory systems.",
+        "Implemented core gameplay mechanics in UE5 Blueprint."
+      ],
+      "whyInteresting": "It teaches a systems concept through changes in scale and perspective, making ecological connectivity something the player performs rather than merely reads about.",
+      "tags": ["serious games", "ecology", "UE5", "game design", "education"],
+      "publicUrl": "https://zayyyseuc.github.io/portfolio/p_forest.html",
+      "sourceIds": ["resume", "portfolio-pdf", "portfolio-site"]
+    },
+    {
+      "id": "project-silent-signal",
+      "type": "project",
+      "title": "Silent Signal",
+      "summary": "An individual passive early-stroke detection concept for older adults living alone, using bilateral facial EMG asymmetry to reduce reliance on active emergency calls or camera-based home monitoring.",
+      "details": [
+        "Compared zygomaticus major, masseter, and frontal muscle locations across resting, normal movement, and left/right muscle-pull conditions using the FAST principle.",
+        "Built a Python pipeline for collection, cleaning, training, real-time loading, and classification.",
+        "Reported 97.5% training accuracy, 84.2%-98.8% real-time scenario accuracy, and about 100 ms decision latency."
+      ],
+      "whyInteresting": "It makes the privacy constraint part of the sensing strategy: the system looks for asymmetry in a small biological signal instead of adding a camera to the home.",
+      "tags": ["health technology", "facial EMG", "machine learning", "privacy", "passive sensing"],
+      "publicUrl": "https://zayyyseuc.github.io/portfolio/p_silent.html",
+      "sourceIds": ["resume", "portfolio-pdf", "portfolio-site"]
+    },
+    {
+      "id": "project-pet-space",
+      "type": "project",
+      "title": "Pet Space",
+      "summary": "An individual environment-responsive desk-lamp prototype for remote pet companionship, designed as low-interruption emotional awareness rather than always-on visual monitoring.",
+      "details": [
+        "Investigated work-from-home fatigue, pet separation anxiety, and privacy concerns.",
+        "Defined pet location detection, activity trends, history review, audio cues, and screen feedback.",
+        "Integrated ESP32-C3, LD2420 radar, HC-SR501 PIR, an audio module, speaker, server code, and display interface into a working prototype."
+      ],
+      "whyInteresting": "It translates presence into ambient signals instead of surveillance footage, turning privacy and emotional tone into product requirements.",
+      "tags": ["smart hardware", "pet companionship", "ambient interaction", "IoT", "privacy"],
+      "publicUrl": "https://zayyyseuc.github.io/portfolio/p_pet.html",
+      "sourceIds": ["resume", "portfolio-pdf", "portfolio-site"]
+    },
+    {
+      "id": "education-nankai",
+      "type": "education",
+      "title": "Nankai University - Environmental Design",
+      "summary": "Environmental Design studies from 2022 to 2026, with a stated GPA of 3.7/4.0 and rank of 1/18.",
+      "details": [],
+      "whyInteresting": "The design foundation is paired with computational and physical prototyping rather than treated as a separate practice.",
+      "tags": ["education", "environmental design"],
+      "publicUrl": "https://zayyyseuc.github.io/portfolio/",
+      "sourceIds": ["resume", "portfolio-site"]
+    },
+    {
+      "id": "education-berkeley",
+      "type": "education",
+      "title": "UC Berkeley - Master of Design",
+      "summary": "The supplied resume lists a UC Berkeley Master of Design program for 2026-2027; the portfolio website describes the Fall 2026 intake.",
+      "details": [],
+      "whyInteresting": "It continues the same bridge between computational methods, human context, and experiential systems visible in the project work.",
+      "tags": ["education", "design", "Berkeley"],
+      "publicUrl": "https://zayyyseuc.github.io/portfolio/",
+      "sourceIds": ["resume", "portfolio-site"]
+    },
+    {
+      "id": "award-yantian",
+      "type": "award",
+      "title": "Tianjin Yantian Scenic Area Featured Street Design",
+      "summary": "A 72-hour team competition project that received a national second prize, balancing heritage value, business feasibility, and a younger-user experience.",
+      "details": [],
+      "whyInteresting": "It shows fast reframing and delivery under a hard time constraint while negotiating cultural, commercial, and experience goals.",
+      "tags": ["award", "team competition", "service design"],
+      "publicUrl": "https://zayyyseuc.github.io/portfolio/",
+      "sourceIds": ["resume", "portfolio-site"]
+    }
+  ]
+}

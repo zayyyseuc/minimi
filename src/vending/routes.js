@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { generateProduct, PRODUCTS, PROMPT_VERSION } = require('./generator');
 const { refreshFromVault } = require('./learning');
 const { sanitizeForApproval, sanitizeShowcase } = require('./privacy');
+const { getBehavioralProfile, getPublicFacts, getPublicBasis } = require('./public-profile');
 const store = require('./profile-store');
 
 const router = express.Router();
@@ -43,13 +44,15 @@ function ownerOnly(req, res, next) {
 }
 
 router.get('/status', (req, res) => {
-  const active = store.getActive();
+  const active = getBehavioralProfile();
   res.json({
     ready: Boolean(process.env.SILICONFLOW_API_KEY),
-    personalized: Boolean(active),
-    profileVersion: active?.version || 'generic-safe-baseline-v1',
+    personalized: true,
+    profileVersion: active.version,
+    publicProfileVersion: getPublicBasis().profileVersion,
     promptVersion: PROMPT_VERSION,
-    publicFactCount: store.getShowcase().items.length,
+    publicFactCount: getPublicFacts().length,
+    basis: getPublicBasis(),
     products: Object.entries(PRODUCTS).map(([id, product]) => ({ id, label: product.label, format: product.format })),
   });
 });

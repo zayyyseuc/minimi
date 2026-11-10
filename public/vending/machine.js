@@ -138,7 +138,19 @@
       chip.textContent = item.label;
       trace.appendChild(chip);
     });
-    document.querySelector('#artifactProfile').textContent = `PROFILE ${data.profileVersion}`;
+    const facts = document.querySelector('#artifactFacts');
+    const factItems = Array.isArray(data.factTrace) ? data.factTrace : [];
+    facts.hidden = factItems.length === 0;
+    facts.innerHTML = '';
+    factItems.forEach(item => {
+      const chip = document.createElement('a');
+      chip.textContent = item.label;
+      chip.href = item.url || 'https://zayyyseuc.github.io/portfolio/';
+      chip.target = '_blank';
+      chip.rel = 'noopener noreferrer';
+      facts.appendChild(chip);
+    });
+    document.querySelector('#artifactProfile').textContent = `PROFILE ${data.profileBasis?.label || data.profileVersion}`;
     document.querySelector('#artifactPrompt').textContent = `BEHAVIOR ${data.promptVersion}`;
   }
 
@@ -185,7 +197,7 @@
     .then(response => response.json())
     .then(status => {
       const signal = document.querySelector('#profileSignal');
-      signal.textContent = status.personalized ? ' PERSONAL PROFILE ACTIVE' : ' SAFE BASELINE MODE';
+      signal.textContent = status.personalized ? ' RÉSUMÉ + PORTFOLIO PROFILE ACTIVE' : ' SAFE BASELINE MODE';
       signal.prepend(document.createElement('i'));
       signal.classList.toggle('personal', status.personalized);
     })

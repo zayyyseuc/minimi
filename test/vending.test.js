@@ -5,8 +5,9 @@ const path = require('path');
 
 const { sanitizeForApproval, sanitizeShowcase, hashShingles, checkOutputOverlap, looksLikeExtractionAttempt } = require('../src/vending/privacy');
 const { inferProfile } = require('../src/vending/learning');
-const { validInput } = require('../src/vending/routes');
+const { validInput, statusPayload } = require('../src/vending/public-api');
 const { primaryLanguage, isPersonalHistoryQuery, personalBoundaryArtifact } = require('../src/vending/generator');
+const publicProfile = require('../config/public-zai-profile.json');
 
 test('approval removes private rationale and retains only safe fields', () => {
   const draft = {
@@ -78,7 +79,7 @@ test('personal-history questions are routed to the approved-facts boundary', () 
   assert.equal(isPersonalHistoryQuery('What is your favorite project that you built?'), true);
   assert.equal(isPersonalHistoryQuery('这个项目为什么有意思？'), false);
   const artifact = personalBoundaryArtifact('reality_check', 'zh');
-  assert.match(artifact.message, /没有经过本人批准/);
+  assert.match(artifact.message, /简历、作品集和公开网站/);
   assert.equal(artifact.behavioralTrace[0].id, 'privacy-boundary');
 });
 
@@ -97,4 +98,33 @@ test('public generator has no retrieval or index dependency', () => {
   assert.equal(/require\(['"]\.\.\/searcher/.test(generator), false);
   assert.equal(/require\(['"]\.\.\/indexer/.test(generator), false);
   assert.equal(/LocalIndex|queryItems|VAULT_PATH/.test(generator), false);
+  assert.equal(/profile-store/.test(generator), false);
+  assert.match(generator, /public-profile/);
+});
+
+test('committed public profile contains the five published projects without contact details', () => {
+  const projectIds = publicProfile.facts.filter(item => item.type === 'project').map(item => item.id).sort();
+  assert.deepEqual(projectIds, [
+    'project-cubik',
+    'project-fragments-forest',
+    'project-pet-space',
+    'project-silent-signal',
+    'project-urban-mirage',
+  ]);
+  const serialized = JSON.stringify(publicProfile);
+  assert.equal(serialized.includes('18780271110'), false);
+  assert.equal(serialized.includes('chen_seuc@qq.com'), false);
+  assert.equal(serialized.includes('zchanzay@gmail.com'), false);
+  assert.equal(serialized.includes('/Users/'), false);
+});
+
+test('public status is deploy-safe even when the model key is absent', () => {
+  const previous = process.env.SILICONFLOW_API_KEY;
+  delete process.env.SILICONFLOW_API_KEY;
+  const status = statusPayload();
+  assert.equal(status.ready, false);
+  assert.equal(status.personalized, true);
+  assert.equal(status.publicFactCount, 8);
+  assert.equal(status.basis.sourceCount, 3);
+  if (previous) process.env.SILICONFLOW_API_KEY = previous;
 });

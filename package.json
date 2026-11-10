@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build:vending": "node scripts/build-vending.js",
     "test": "node --test",
     "test:vending": "node --test test/vending.test.js",
     "start": "node src/server.js",
@@ -13,6 +14,9 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "dependencies": {
     "chokidar": "^5.0.0",
     "cors": "^2.8.6",

@@ -1,9 +1,12 @@
 # Dependencies
 node_modules/
+dist/
+tmp/
 
 # Environment variables (contains API keys)
 .env
 .env.*
+!.env.example
 
 # Generated cache and indexes (auto-regenerated on demand)
 cache/

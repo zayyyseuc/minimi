@@ -1,82 +1,68 @@
 # Zai Vending Machine architecture
 
-## Existing system audit
+## Public-source architecture
 
-Personal Brain is a single Express process with a buildless vanilla JavaScript client. `src/indexer.js` walks the private vault, sends chunks to SiliconFlow for embeddings, and stores raw chunk text plus source paths in a local Vectra index. `src/searcher.js` retrieves those chunks and places their text directly in the Personal Brain chat prompt. `src/server.js` also contains owner-oriented routes that read and write vault material. The Mom PWA has a separate index but still belongs to the existing private application.
+Personal Brain remains a local Express application, but the public Vending Machine now has a separate deployment entry. Its only personal context is the committed, owner-reviewed `config/public-zai-profile.json`, distilled from the supplied résumé, portfolio PDF, and public portfolio website. Phone numbers, personal email addresses, residential details, private relationships, vault notes, and unsupported inferences are excluded.
 
-Those paths are appropriate for the local owner experience, but they are not a safe dependency for a public vending agent. They remain intact and are not imported by the Vending Machine generator.
+The Vercel functions import `src/vending/public-api.js`, `generator.js`, privacy helpers, and the sanitized profile. They do not import `server.js`, Vectra, the watcher, the indexer, or the vault searcher.
 
 ## Privacy boundary
 
 ```text
-PRIVATE / OWNER                                   PUBLIC
+OWNER SOURCES                                  PUBLIC DEPLOYMENT
 
-Obsidian vault
-      │
-      ▼
-local heuristic analysis ──► private draft
-      │                          │ owner edits / approves
-      │                          ▼
-      └─► hashed 8-token      sanitized approved profile
-          fingerprints             │
-          (no plaintext)            ├──────────────┐
-                                    ▼              ▼
-visitor input ─────────────────► product prompt ► SiliconFlow LLM
-                                    │
-                                    ▼
-                              structured artifact
-                                    │
-                                    ▼
-                          hashed overlap check ──► public response
+résumé ───────────┐
+portfolio PDF ────┼─► manual fact review + contact removal
+portfolio website┘                 │
+                                   ▼
+                      config/public-zai-profile.json
+                                   │
+visitor input ───────────────► product prompt ─► SiliconFlow LLM
+                                   │
+                                   ▼
+                     answer + behavior trace + fact trace
 ```
 
-The public generation path imports `generator.js`, `profile-store.js`, and privacy helpers. It does not import Vectra, `searcher.js`, or `indexer.js`; it never queries the vault. The only personal context in its model call is the currently active approved profile. Draft rationales, note counts, fingerprints, evaluations, and profile history stay under the gitignored `data/vending` directory with restrictive file modes.
+The public generation path never queries the vault. It can state only the bounded facts in the public JSON profile. Each model response returns exact behavioral-trait IDs and zero to three exact public-fact IDs. The server validates those IDs before the interface displays them, so invented trace labels cannot appear as grounding.
 
-The overlap detector compares SHA-256 hashes of normalized eight-token sequences. It adds a useful exact-overlap tripwire without making raw passages available to the generator. It cannot prove that semantic reconstruction is impossible and should not be described as a confidentiality guarantee.
+The public profile is deliberately safe to deploy and contains no raw résumé or PDF file. Local draft profiles and any legacy vault fingerprints remain under the gitignored `data/` directory and are not part of the Vercel build.
 
-## Learning lifecycle
+## Curation lifecycle
 
-1. `POST /api/vending/owner/learn` runs local deterministic analysis over the vault. No raw note text is sent to an LLM.
-2. A private draft records abstract traits, confidence, and aggregate rationale.
-3. The owner reviews each trait at `/vending-owner/`, edits or rejects it, and explicitly approves a version.
-4. Approval runs a strict sanitizer. Only `id`, `label`, `description`, and `confidence` survive.
-5. The approved version becomes active. Any previous approved version can be reactivated.
+1. Read the owner-provided résumé, portfolio PDF, and published portfolio pages.
+2. Reconcile overlapping facts and avoid disputed or stale claims where the sources conflict.
+3. Remove contact and location details and keep only public work, education, skills, awards, and approved links.
+4. Encode bounded facts and abstract practice traits in `config/public-zai-profile.json`.
+5. Run tests that reject known contact details, local file paths, and private-runtime imports.
 
-Learning method changes (`local-heuristics-v1`), behavioral prompt changes (`vending-products-v2`), profile changes, and the underlying model (`VENDING_MODEL`) are separately identified.
+Prompt changes, public-profile changes, behavioral-profile changes, and the underlying model (`VENDING_MODEL`) are separately identified in responses.
 
-## Owner-approved public showcase
+## Answer grounding
 
-The behavioral profile controls how the machine reasons; it deliberately contains no project history. Real project questions use a second, manually maintained allowlist at `/vending-owner/`. Each public showcase item contains only an owner-approved title, description, explanation, and broad tags. If this list is empty, personal-history questions receive a concise boundary response in the visitor's language instead of a fabricated answer or an irrelevant product critique. The private vault is never searched to answer these questions.
+The behavioral dimensions control how the machine reasons. The fact records cover five published projects plus bounded education and award information. Questions about Zai must use at least one fact record. Subjective questions are answered as analytical selections rather than falsely presented as Zai's documented favorite or personal belief.
 
 ## Public deployment
 
-Do not expose the default Personal Brain server to the internet. Its existing routes intentionally support raw note access and owner mutations.
+Do not expose the default Personal Brain server to the internet. Vercel instead builds only `public/vending/` into `dist/` and deploys the two files under `api/vending/`.
 
-For a vending-only deployment set:
+Required Vercel environment:
 
 ```env
-PUBLIC_VENDING_ONLY=true
 SILICONFLOW_API_KEY=...
 VENDING_MODEL=deepseek-ai/DeepSeek-V4-Flash
 VENDING_RATE_LIMIT=24
 ```
 
-`PUBLIC_VENDING_ONLY=true` returns 404 for every API except `/api/vending/status` and `/api/vending/dispense`, including all owner learning operations. Prepare and approve a profile locally, then deploy only the required active profile data through a secure deployment mechanism. Do not deploy drafts, evaluations, fingerprints, vault paths, `.env`, the vector index, or the vault.
+`SILICONFLOW_API_KEY` is read lazily inside generation, so a missing key causes a clear `503` from the dispense function rather than crashing the whole site. The status function and static interface still load. Do not configure or deploy `VAULT_PATH`, `INDEX_PATH`, owner tokens, `.env`, vector indexes, or vault files.
 
 ## Evaluation
 
-The owner Behavior Lab calls the same input and product configuration against:
-
-- Generic: no behavioral profile.
-- Basic: a compact non-personal persona.
-- Learned: the active approved behavioral profile.
-
-Each run records its input, output, prompt version, profile version, and timestamp in private JSONL. The automated tests cover profile sanitization, source-field rejection, hashed-overlap detection, prompt-injection interception, bounded request validation, and the absence of retrieval dependencies in the public generator.
+Automated tests cover prompt-injection interception, bounded request validation, the complete five-project allowlist, removal of known contact details and local paths, clean startup without a model key, and the absence of retrieval/profile-store dependencies in the public generator. A live regression question verifies that a project answer names a real published project and returns a validated fact trace.
 
 ## Known limits
 
-- The local analyzer is deliberately inspectable and conservative; it is statistical heuristics, not model training or fine-tuning.
-- Confidence scores are evidence-strength estimates, not psychological certainty.
-- Keyword-based domain inference can miss implicit interests or overcount ambiguous terms.
-- Shingle checks catch substantial verbatim overlap, not paraphrased disclosure. Architectural non-retrieval is the primary protection.
+- This is prompt-grounded generation from curated public facts, not model training or fine-tuning.
+- Source updates are manual. A changed résumé or portfolio requires reviewing and updating the public JSON profile.
+- A validated fact ID proves which allowlisted record the model selected; it does not independently verify the underlying résumé claim.
+- Subjective questions can receive an analytical selection, but the machine must not label it as Zai's documented favorite unless a source explicitly says so.
 - In-memory rate limiting is suitable for a single-process MVP. A multi-instance production deployment should use a shared rate-limit store and trusted proxy configuration.

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:vending",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/vending/dispense.js": {
+      "maxDuration": 30
+    }
+  }
+}

@@ -15,8 +15,8 @@ A local-first personal knowledge assistant that lets you search, chat with, and 
 - **Auto file watching**: vault changes are re-indexed automatically via chokidar
 - **Mom PWA** (`/mom`): a separate installable interface for family — shows your status card, activity heatmap, recent public notes, and a milestone countdown; only surfaces notes with `public: true` in frontmatter, backed by a separate vector index
 - **Mobile-friendly UI**: responsive single-page app served from `public/index.html`, tested on iOS Safari
-- **Zai Vending Machine** (`/vending/`): a tactile public experience that generates Reality Checks, Unexpected Connections, and Wild Cards from an owner-approved behavioral profile—without retrieving private notes
-- **Owner calibration panel** (`/vending-owner/`): local behavioral learning, characteristic review, version approval/revert, and three-way behavior evaluation
+- **Zai Vending Machine** (`/vending/`): a tactile public experience grounded only in an owner-approved, contact-free profile derived from Zai's résumé, portfolio PDF, and public portfolio website
+- **Visible grounding**: every answer can show the reasoning traits and published projects that materially shaped it
 
 ## Tech stack
 
@@ -71,9 +71,9 @@ PORT=3000
 # Zai Vending Machine owner operations (required for /vending-owner/)
 VENDING_OWNER_TOKEN=choose-a-long-random-token
 
-# Set only on a dedicated public vending deployment. This disables every
-# Personal Brain, Mom, and owner API except vending status + dispense.
-PUBLIC_VENDING_ONLY=false
+# Optional Vending Machine settings
+VENDING_MODEL=deepseek-ai/DeepSeek-V4-Flash
+VENDING_RATE_LIMIT=24
 ```
 
 ## First-time indexing
@@ -104,9 +104,29 @@ Open `http://localhost:3000` in your browser. On subsequent runs the file watche
 
 The Mom PWA is at `http://localhost:3000/mom` — installable on iOS/Android via "Add to Home Screen."
 
-The Zai Vending Machine is at `http://localhost:3000/vending/`. Its private learning and evaluation panel is at `http://localhost:3000/vending-owner/`. The machine works in a non-personal safe-baseline mode until you run a local learning refresh and explicitly approve a profile.
+The Zai Vending Machine is at `http://localhost:3000/vending/`. Its public facts and behavior traits live in `config/public-zai-profile.json`; the generator does not read the vault or vector index.
 
 See [`docs/vending-architecture.md`](docs/vending-architecture.md) for the privacy boundary, lifecycle, evaluation workflow, deployment isolation, and known limitations.
+
+## Deploy only the Vending Machine to Vercel
+
+The repository includes two standalone serverless functions and a public-only build. Vercel receives only the Vending Machine interface plus the sanitized JSON profile; it does not serve the Personal Brain, Mom PWA, or owner panel.
+
+1. In Vercel, set `SILICONFLOW_API_KEY` for Production, Preview, and Development as needed.
+2. Optionally set `VENDING_MODEL` and `VENDING_RATE_LIMIT`.
+3. Redeploy the latest `main` commit. `vercel.json` runs `npm run build:vending` and publishes `dist/`.
+
+Local deployment check:
+
+```bash
+npm run build:vending
+npm test
+```
+
+The public API is limited to:
+
+- `GET /api/vending/status`
+- `POST /api/vending/dispense`
 
 ## Mom PWA: public notes
 
@@ -124,6 +144,11 @@ All other notes are excluded from the mom index. Folders listed in `MOM_EXCLUDED
 
 ```
 personal-brain/
+├── api/vending/             # Standalone Vercel status + dispense functions
+├── config/
+│   └── public-zai-profile.json # Sanitized résumé/portfolio facts and traits
+├── scripts/
+│   └── build-vending.js     # Builds the public-only static bundle
 ├── public/
 │   ├── index.html            # Main single-page UI
 │   ├── vending/              # Public Vending Machine interface
