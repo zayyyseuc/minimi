@@ -2,6 +2,7 @@
   const machine = document.querySelector('.vending-machine');
   const input = document.querySelector('#thoughtInput');
   const products = [...document.querySelectorAll('.product')];
+  const productGrid = document.querySelector('.product-grid');
   const lever = document.querySelector('#lever');
   const surprise = document.querySelector('#surpriseButton');
   const count = document.querySelector('#charCount');
@@ -16,6 +17,9 @@
   let lastArtifact = null;
   let toastTimer;
   let pullFeedbackAnimation;
+  let modeAnimating = false;
+  let typingRun = 0;
+  const lastPrompt = {};
 
   function triggerPullFeedback() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -111,6 +115,33 @@
     wild_card: 'C–?? · WILD CARD',
   };
 
+  const surprisePrompts = {
+    reality_check: [
+      'Which project contains the most fragile assumption?',
+      'What part of my portfolio looks convincing but still lacks evidence?',
+      'Which project has the weakest complete interaction loop?',
+      'What should I test before developing one of these projects further?',
+      'Where does my design process confuse a polished prototype with validation?',
+      'Which recurring idea in my work is most likely to fail in the real world?',
+    ],
+    unexpected_connection: [
+      'What does my design practice have in common with ecology?',
+      'Connect one of my projects to a scientific concept I did not mention.',
+      'What can my portfolio learn from the way animals combine imperfect senses?',
+      'Connect my visual language to the structure of a technical field manual.',
+      'What does spatial memory reveal about one of my interaction systems?',
+      'Find a defensible connection between two projects that seem unrelated.',
+    ],
+    wild_card: [
+      'Combine two of my projects into a product that should not exist.',
+      'Redesign one project without screens, menus, or text.',
+      'Turn one project into a five-minute public experiment.',
+      'Reverse the roles of the user and the system in one of my projects.',
+      'Give one project a strange constraint that makes its purpose clearer.',
+      'Invent a sixth project using the smallest useful parts of the existing five.',
+    ],
+  };
+
   function showToast(message) {
     toast.textContent = message;
     toast.classList.add('show');
@@ -147,19 +178,106 @@
     }
   }
 
-  products.forEach(button => button.addEventListener('click', () => selectProduct(button.dataset.product)));
-
-  input.addEventListener('input', () => {
+  function syncInputState() {
     const length = input.value.length;
     count.textContent = `${String(length).padStart(4, '0')} / 1200`;
     meter.style.width = `${Math.max(2, length / 12)}%`;
     if (length > 1) screen.textContent = `01 — ${productNames[selectedProduct]} READY.`;
-  });
+  }
 
-  surprise.addEventListener('click', () => {
+  function setModeControlsDisabled(disabled) {
+    products.forEach(button => { button.disabled = disabled; });
+    surprise.disabled = disabled;
+    productGrid.setAttribute('aria-busy', String(disabled));
+  }
+
+  function reelDelay(step, total, surpriseRun) {
+    const progress = step / Math.max(1, total - 1);
+    return Math.round((surpriseRun ? 48 : 42) + Math.pow(progress, 2.15) * (surpriseRun ? 150 : 105));
+  }
+
+  async function spinToProduct(target, { surpriseRun = false } = {}) {
+    if (working || modeAnimating) return false;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      selectProduct(target);
+      return true;
+    }
+
+    modeAnimating = true;
+    setModeControlsDisabled(true);
+    machine.classList.add('mode-spinning');
+    surprise.classList.toggle('is-spinning', surpriseRun);
+    screen.textContent = surpriseRun ? '02 — SHUFFLING MODE…' : '02 — SELECTING MODE…';
+
+    const ids = Object.keys(productNames);
+    const start = ids.indexOf(selectedProduct);
+    const total = surpriseRun ? 13 : 8;
+
+    for (let step = 0; step < total; step += 1) {
+      const id = step === total - 1 ? target : ids[(start + step + 1) % ids.length];
+      products.forEach(button => button.classList.toggle('reel-highlight', button.dataset.product === id));
+      tinySound(185 + (ids.indexOf(id) * 65), .025);
+      await wait(reelDelay(step, total, surpriseRun));
+    }
+
+    products.forEach(button => button.classList.remove('reel-highlight'));
+    machine.classList.remove('mode-spinning');
+    surprise.classList.remove('is-spinning');
+    selectProduct(target);
+    setModeControlsDisabled(false);
+    modeAnimating = false;
+    return true;
+  }
+
+  function pickSurprisePrompt(product) {
+    const prompts = surprisePrompts[product];
+    const options = prompts.filter(prompt => prompt !== lastPrompt[product]);
+    const prompt = options[Math.floor(Math.random() * options.length)];
+    lastPrompt[product] = prompt;
+    return prompt;
+  }
+
+  async function typePrompt(text) {
+    const run = ++typingRun;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    input.value = '';
+    syncInputState();
+    input.focus();
+
+    if (reducedMotion) {
+      input.value = text;
+      syncInputState();
+      return;
+    }
+
+    for (let index = 0; index < text.length; index += 1) {
+      if (run !== typingRun) return;
+      input.value += text[index];
+      syncInputState();
+      await wait(index % 4 === 0 ? 18 : 10);
+    }
+  }
+
+  products.forEach(button => button.addEventListener('click', () => spinToProduct(button.dataset.product)));
+
+  input.addEventListener('input', syncInputState);
+  input.addEventListener('keydown', () => { typingRun += 1; });
+  input.addEventListener('pointerdown', () => { typingRun += 1; }, { passive: true });
+
+  surprise.addEventListener('click', async () => {
     const options = Object.keys(productNames).filter(item => item !== selectedProduct);
-    selectProduct(options[Math.floor(Math.random() * options.length)]);
-    surprise.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-3deg)' }, { transform: 'rotate(3deg)' }, { transform: 'rotate(0)' }], { duration: 300 });
+    const target = options[Math.floor(Math.random() * options.length)];
+    const selected = await spinToProduct(target, { surpriseRun: true });
+    if (!selected) return;
+    setModeControlsDisabled(true);
+    try {
+      await typePrompt(pickSurprisePrompt(target));
+      screen.textContent = `01 — ${productNames[target]} READY. PULL THE LEVER.`;
+      showToast('QUESTION LOADED');
+    } finally {
+      setModeControlsDisabled(false);
+    }
   });
 
   function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
