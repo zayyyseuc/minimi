@@ -24,3 +24,4 @@ data/
 
 # Personal persona (contains private context — copy persona.example.md to create your own)
 persona.md
+.vercel
