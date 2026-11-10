@@ -5,6 +5,22 @@ const { getBehavioralProfile, getPublicFacts, getPublicBasis } = require('./publ
 const attempts = new Map();
 const WINDOW_MS = 10 * 60 * 1000;
 
+function isModelTimeout(error) {
+  return error?.name === 'APIConnectionTimeoutError'
+    || error?.code === 'ETIMEDOUT'
+    || /timed?\s*out|timeout/i.test(String(error?.message || ''));
+}
+
+function publicModelError(error, fallback) {
+  if (isModelTimeout(error)) {
+    return { status: 504, message: 'The model took too long to respond. Pull again.' };
+  }
+  if (error?.message === 'SILICONFLOW_API_KEY is not configured') {
+    return { status: 503, message: error.message };
+  }
+  return { status: error?.status || 500, message: error?.message || fallback };
+}
+
 function validInput(value) {
   return typeof value === 'string' && value.trim().length >= 2 && value.trim().length <= 1200;
 }
@@ -71,8 +87,8 @@ async function dispenseHandler(req, res) {
     return res.status(200).json(await generateProduct({ input: input.trim(), product }));
   } catch (error) {
     console.error('[vending/dispense]', error.message);
-    const status = error.message === 'SILICONFLOW_API_KEY is not configured' ? 503 : (error.status || 500);
-    return res.status(status).json({ error: error.message || 'The machine jammed.' });
+    const failure = publicModelError(error, 'The machine jammed.');
+    return res.status(failure.status).json({ error: failure.message });
   }
 }
 
@@ -104,9 +120,18 @@ async function turnHandler(req, res) {
     return res.status(200).json(await continueConversation({ stateToken: body.stateToken, action, answer }));
   } catch (error) {
     console.error('[vending/turn]', error.message);
-    const status = error.message === 'SILICONFLOW_API_KEY is not configured' ? 503 : (error.status || 500);
-    return res.status(status).json({ error: error.message || 'The calibration mechanism jammed.' });
+    const failure = publicModelError(error, 'The calibration mechanism jammed.');
+    return res.status(failure.status).json({ error: failure.message });
   }
 }
 
-module.exports = { validInput, validStateToken, statusPayload, statusHandler, dispenseHandler, turnHandler };
+module.exports = {
+  validInput,
+  validStateToken,
+  isModelTimeout,
+  publicModelError,
+  statusPayload,
+  statusHandler,
+  dispenseHandler,
+  turnHandler,
+};

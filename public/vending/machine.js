@@ -380,7 +380,13 @@
         body: JSON.stringify(payload),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'The calibration mechanism jammed.');
+      if (!response.ok) {
+        const message = data.error
+          || ([408, 504].includes(response.status)
+            ? 'The model took too long to respond. Pull again.'
+            : 'The calibration mechanism jammed. Pull again.');
+        throw new Error(message);
+      }
       machine.classList.remove('thinking');
 
       if (data.type === 'artifact') {
@@ -402,8 +408,11 @@
         throw new Error('The calibration mechanism returned an unknown ticket.');
       }
     } catch (error) {
-      screen.textContent = `JAM 05 — ${error.message}`;
-      showToast(error.message.toUpperCase());
+      const message = /failed to fetch|load failed|networkerror/i.test(String(error.message || ''))
+        ? 'Network request failed. Pull again.'
+        : error.message;
+      screen.textContent = `JAM 05 — ${message}`;
+      showToast(message.toUpperCase());
       tinySound(82, .18);
     } finally {
       working = false;

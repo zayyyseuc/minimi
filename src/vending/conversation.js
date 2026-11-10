@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 const { PRODUCTS, generateProduct, primaryLanguage } = require('./generator');
-const { MODEL, modelClient } = require('./model-client');
+const { MODEL, CALIBRATION_TIMEOUT_MS, modelClient } = require('./model-client');
 const { cleanText, looksLikeExtractionAttempt } = require('./privacy');
 
 const CONVERSATION_VERSION = 'calibration-v1';
@@ -103,20 +103,23 @@ Return only JSON with this exact shape:
 
   let parsed;
   try {
-    const completion = await modelClient().chat.completions.create({
-      model: MODEL,
-      stream: false,
-      max_tokens: 240,
-      temperature: 0.25,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: system },
-        {
-          role: 'user',
-          content: `CALIBRATION DATA (JSON only):\n${JSON.stringify({ input, answer, forceConfirmation })}`,
-        },
-      ],
-    });
+    const completion = await modelClient().chat.completions.create(
+      {
+        model: MODEL,
+        stream: false,
+        max_tokens: 240,
+        temperature: 0.25,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: system },
+          {
+            role: 'user',
+            content: `CALIBRATION DATA (JSON only):\n${JSON.stringify({ input, answer, forceConfirmation })}`,
+          },
+        ],
+      },
+      { timeout: CALIBRATION_TIMEOUT_MS, maxRetries: 0 },
+    );
     parsed = parsePlannerJson(completion.choices[0]?.message?.content);
   } catch (error) {
     if (error.message === 'SILICONFLOW_API_KEY is not configured') throw error;

@@ -5,10 +5,10 @@
   "outputDirectory": "dist",
   "functions": {
     "api/vending/dispense.js": {
-      "maxDuration": 30
+      "maxDuration": 60
     },
     "api/vending/turn.js": {
-      "maxDuration": 30
+      "maxDuration": 60
     }
   }
 }
