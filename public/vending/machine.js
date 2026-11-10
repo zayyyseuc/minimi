@@ -15,6 +15,29 @@
   let working = false;
   let lastArtifact = null;
   let toastTimer;
+  let pullFeedbackAnimation;
+
+  function triggerPullFeedback() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    if (typeof machine.animate === 'function') {
+      pullFeedbackAnimation?.cancel();
+      pullFeedbackAnimation = machine.animate([
+        { translate: '0 0' },
+        { translate: '-4px 1px', offset: .18 },
+        { translate: '4px -1px', offset: .38 },
+        { translate: '-3px 1px', offset: .58 },
+        { translate: '2px 0', offset: .78 },
+        { translate: '0 0' },
+      ], {
+        duration: 260,
+        easing: 'linear',
+      });
+      pullFeedbackAnimation.addEventListener('finish', () => { pullFeedbackAnimation = null; }, { once: true });
+    }
+
+    try { navigator.vibrate?.([18, 22, 26]); } catch {}
+  }
 
   function setupParallax() {
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -185,7 +208,10 @@
     }
   }
 
-  lever.addEventListener('click', dispense);
+  lever.addEventListener('click', () => {
+    triggerPullFeedback();
+    dispense();
+  });
   input.addEventListener('keydown', event => {
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') dispense();
   });
