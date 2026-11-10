@@ -12,8 +12,19 @@
   const artifact = document.querySelector('#artifact');
   const toast = document.querySelector('#toast');
   const parallaxShell = document.querySelector('.machine-parallax-shell');
+  const calibrationPanel = document.querySelector('#calibrationPanel');
+  const calibrationStep = document.querySelector('#calibrationStep');
+  const calibrationText = document.querySelector('#calibrationText');
+  const calibrationOptions = document.querySelector('#calibrationOptions');
+  const calibrationReply = document.querySelector('#calibrationReply');
+  const calibrationReplyLabel = document.querySelector('#calibrationReplyLabel');
+  const calibrationSecondary = document.querySelector('#calibrationSecondary');
+  const calibrationContinue = document.querySelector('#calibrationContinue');
+  const leverLabel = document.querySelector('#leverLabel');
   let selectedProduct = 'reality_check';
   let working = false;
+  let conversationPhase = 'idle';
+  let stateToken = '';
   let lastArtifact = null;
   let toastTimer;
   let pullFeedbackAnimation;
@@ -172,7 +183,7 @@
       button.classList.toggle('selected', active);
       button.setAttribute('aria-checked', String(active));
     });
-    if (announce) {
+    if (announce && conversationPhase === 'idle') {
       screen.textContent = `02 — ${productNames[id]} READY.`;
       tinySound(280, .045);
     }
@@ -182,7 +193,7 @@
     const length = input.value.length;
     count.textContent = `${String(length).padStart(4, '0')} / 1200`;
     meter.style.width = `${Math.max(2, length / 12)}%`;
-    if (length > 1) screen.textContent = `01 — ${productNames[selectedProduct]} READY.`;
+    if (length > 1 && conversationPhase === 'idle') screen.textContent = `01 — ${productNames[selectedProduct]} READY.`;
   }
 
   function setModeControlsDisabled(disabled) {
@@ -282,39 +293,114 @@
 
   function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
-  async function dispense() {
-    if (working) return;
-    const thought = input.value.trim();
-    if (thought.length < 2) {
-      screen.textContent = 'ERROR 01 — THE MACHINE CANNOT VEND EMPTY AIR.';
-      input.focus();
-      showToast('INSERT A THOUGHT FIRST');
-      tinySound(95, .12);
+  function resetCalibration({ preserveInput = true } = {}) {
+    conversationPhase = 'idle';
+    stateToken = '';
+    calibrationPanel.hidden = true;
+    calibrationText.textContent = '';
+    calibrationOptions.innerHTML = '';
+    calibrationReply.value = '';
+    calibrationReply.closest('label').hidden = false;
+    input.disabled = false;
+    setModeControlsDisabled(false);
+    leverLabel.textContent = 'PULL TO CALIBRATE';
+    lever.setAttribute('aria-label', 'Pull lever to calibrate');
+    if (!preserveInput) input.value = '';
+    syncInputState();
+  }
+
+  function renderOptions(options) {
+    calibrationOptions.innerHTML = '';
+    options.forEach(option => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = option;
+      button.addEventListener('click', () => {
+        calibrationReply.value = option;
+        [...calibrationOptions.children].forEach(item => item.classList.toggle('selected', item === button));
+        calibrationReply.focus();
+      });
+      calibrationOptions.appendChild(button);
+    });
+  }
+
+  function renderConversationTurn(data) {
+    stateToken = data.stateToken || '';
+    input.disabled = true;
+    setModeControlsDisabled(true);
+    calibrationPanel.hidden = false;
+    calibrationReply.value = '';
+
+    if (data.type === 'clarification') {
+      conversationPhase = 'clarification';
+      calibrationStep.textContent = `CALIBRATION ${data.turn || 1} / ${data.maxTurns || 1}`;
+      calibrationText.textContent = data.question;
+      renderOptions(Array.isArray(data.options) ? data.options : []);
+      calibrationReply.closest('label').hidden = false;
+      calibrationReplyLabel.textContent = 'YOUR ANSWER';
+      calibrationReply.placeholder = 'Add the missing detail…';
+      calibrationSecondary.textContent = 'LET MACHINE DECIDE';
+      calibrationContinue.textContent = 'ANSWER';
+      leverLabel.textContent = 'PULL TO ANSWER';
+      lever.setAttribute('aria-label', 'Pull lever to answer the calibration question');
+      screen.textContent = '02 — ONE DETAIL NEEDED BEFORE DISPENSING.';
+      calibrationReply.focus();
       return;
     }
 
+    conversationPhase = 'confirmation';
+    calibrationStep.textContent = 'CONFIRM ORDER';
+    calibrationText.textContent = data.understanding;
+    renderOptions([]);
+    calibrationReply.closest('label').hidden = !data.canRevise;
+    calibrationReplyLabel.textContent = 'CORRECTION — OPTIONAL';
+    calibrationReply.placeholder = 'Type a correction, or leave blank to confirm…';
+    calibrationSecondary.textContent = 'START OVER';
+    calibrationContinue.textContent = 'CONFIRM & DISPENSE';
+    leverLabel.textContent = 'CONFIRM & DISPENSE';
+    lever.setAttribute('aria-label', 'Pull lever to confirm and dispense');
+    screen.textContent = '03 — CHECK THE ORDER. CONFIRM OR CORRECT.';
+    if (data.canRevise) calibrationReply.focus();
+    else lever.focus();
+  }
+
+  async function sendTurn(payload) {
+    if (working) return;
     working = true;
     lever.disabled = true;
-    machine.classList.add('working');
-    screen.textContent = '03 — PROCESSING…';
+    machine.classList.add('thinking');
+    screen.textContent = 'CALIBRATING…';
     tinySound(120, .09);
     const started = Date.now();
 
     try {
-      const response = await fetch('/api/vending/dispense', {
+      const response = await fetch('/api/vending/turn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: thought, product: selectedProduct }),
+        body: JSON.stringify(payload),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'The machine jammed.');
-      await wait(Math.max(0, 1900 - (Date.now() - started)));
-      lastArtifact = data;
-      screen.textContent = data.privacyRecall ? 'PRIVACY SENSOR — BATCH SAFELY RECALLED.' : '04 — OBJECT READY. LIFT THE COLLECTION DOOR.';
-      renderArtifact(data);
-      tinySound(420, .12);
-      await wait(250);
-      openArtifact();
+      if (!response.ok) throw new Error(data.error || 'The calibration mechanism jammed.');
+      machine.classList.remove('thinking');
+
+      if (data.type === 'artifact') {
+        conversationPhase = 'complete';
+        calibrationPanel.hidden = true;
+        machine.classList.add('working');
+        await wait(Math.max(0, 1900 - (Date.now() - started)));
+        lastArtifact = data;
+        screen.textContent = data.privacyRecall ? 'PRIVACY SENSOR — BATCH SAFELY RECALLED.' : '04 — OBJECT READY. LIFT THE COLLECTION DOOR.';
+        renderArtifact(data);
+        tinySound(420, .12);
+        await wait(250);
+        openArtifact();
+      } else if (data.type === 'clarification' || data.type === 'confirmation') {
+        await wait(Math.max(0, 500 - (Date.now() - started)));
+        renderConversationTurn(data);
+        tinySound(280, .06);
+      } else {
+        throw new Error('The calibration mechanism returned an unknown ticket.');
+      }
     } catch (error) {
       screen.textContent = `JAM 05 — ${error.message}`;
       showToast(error.message.toUpperCase());
@@ -322,16 +408,67 @@
     } finally {
       working = false;
       lever.disabled = false;
+      machine.classList.remove('thinking');
       setTimeout(() => machine.classList.remove('working'), 450);
+    }
+  }
+
+  async function advanceConversation() {
+    if (working) return;
+
+    if (conversationPhase === 'idle') {
+      const thought = input.value.trim();
+      if (thought.length < 2) {
+        screen.textContent = 'ERROR 01 — THE MACHINE CANNOT VEND EMPTY AIR.';
+        input.focus();
+        showToast('INSERT A THOUGHT FIRST');
+        tinySound(95, .12);
+        return;
+      }
+      await sendTurn({ input: thought, product: selectedProduct });
+      return;
+    }
+
+    if (conversationPhase === 'clarification') {
+      const answer = calibrationReply.value.trim();
+      if (!answer) {
+        showToast('ANSWER OR LET THE MACHINE DECIDE');
+        calibrationReply.focus();
+        return;
+      }
+      await sendTurn({ stateToken, action: 'answer', answer });
+      return;
+    }
+
+    if (conversationPhase === 'confirmation') {
+      const correction = calibrationReply.value.trim();
+      await sendTurn(correction
+        ? { stateToken, action: 'revise', answer: correction }
+        : { stateToken, action: 'dispense' });
     }
   }
 
   lever.addEventListener('click', () => {
     triggerPullFeedback();
-    dispense();
+    advanceConversation();
   });
   input.addEventListener('keydown', event => {
-    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') dispense();
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') advanceConversation();
+  });
+  calibrationReply.addEventListener('keydown', event => {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') advanceConversation();
+  });
+  calibrationContinue.addEventListener('click', advanceConversation);
+  calibrationSecondary.addEventListener('click', () => {
+    if (conversationPhase === 'clarification') sendTurn({ stateToken, action: 'skip' });
+    else {
+      resetCalibration();
+      input.focus();
+    }
+  });
+  document.querySelector('#calibrationReset').addEventListener('click', () => {
+    resetCalibration();
+    input.focus();
   });
 
   function renderArtifact(data) {
@@ -399,8 +536,9 @@
 
   document.querySelector('#againButton').addEventListener('click', () => {
     closeArtifact();
+    resetCalibration();
     input.select();
-    screen.textContent = '01 — INSERT ANOTHER THOUGHT OR PULL AGAIN.';
+    screen.textContent = '01 — EDIT THE THOUGHT OR CALIBRATE AGAIN.';
   });
 
   fetch('/api/vending/status')
