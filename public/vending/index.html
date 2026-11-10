@@ -72,13 +72,30 @@
             <span class="slot-mouth" aria-hidden="true"><i></i></span>
           </label>
 
+          <section id="calibrationPanel" class="calibration-panel" aria-live="polite" hidden>
+            <div class="calibration-head">
+              <span id="calibrationStep">CALIBRATION</span>
+              <button id="calibrationReset" type="button">START OVER</button>
+            </div>
+            <p id="calibrationText"></p>
+            <div id="calibrationOptions" class="calibration-options"></div>
+            <label class="calibration-reply">
+              <span id="calibrationReplyLabel">YOUR ANSWER</span>
+              <textarea id="calibrationReply" maxlength="600" rows="3" placeholder="Add the missing detail…"></textarea>
+            </label>
+            <div class="calibration-actions">
+              <button id="calibrationSecondary" type="button">LET MACHINE DECIDE</button>
+              <button id="calibrationContinue" type="button">ANSWER</button>
+            </div>
+          </section>
+
           <div class="controls">
             <button id="surpriseButton" class="surprise-button" type="button">
               <span>?</span> SURPRISE ME
             </button>
             <div class="lever-panel">
-              <div class="lever-copy"><b>PULL TO DISPENSE</b></div>
-              <button id="lever" class="lever" type="button" aria-label="Pull lever to dispense">
+              <div class="lever-copy"><b id="leverLabel">PULL TO CALIBRATE</b></div>
+              <button id="lever" class="lever" type="button" aria-label="Pull lever to calibrate">
                 <span class="lever-track"><i class="lever-stem"></i><b class="lever-knob"></b></span>
               </button>
             </div>

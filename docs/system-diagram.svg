@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="690" viewBox="0 0 1400 690" role="img" aria-labelledby="svg-title svg-desc">
+  <title id="svg-title">Zai Vending Machine calibrated conversation architecture</title>
+  <desc id="svg-desc">Visitor input passes through validation, one bounded calibration and confirmation loop, generation, output validation, and delivery. The diagram also states what the model sees, never sees, and what humans decide.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10" fill="none" stroke="#000" stroke-width="1.5"/>
+    </marker>
+    <style>
+      .box { fill: #fff; stroke: #000; stroke-width: 2.2; }
+      .black-box { fill: #000; stroke: #000; stroke-width: 2.2; }
+      .heading { font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 800; fill: #000; }
+      .heading-white { font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 800; fill: #fff; }
+      .copy { font-family: Georgia, "Times New Roman", serif; font-size: 16px; fill: #000; }
+      .copy-white { font-family: Georgia, "Times New Roman", serif; font-size: 16px; fill: #fff; }
+      .panel-copy { font-family: Georgia, "Times New Roman", serif; font-size: 18px; fill: #000; }
+      .panel-copy-white { font-family: Georgia, "Times New Roman", serif; font-size: 18px; fill: #fff; }
+      .meta { font-family: Arial, Helvetica, sans-serif; font-size: 16px; fill: #707070; }
+      .loop { font-family: Arial, Helvetica, sans-serif; font-size: 13px; letter-spacing: .04em; fill: #707070; }
+      .footer { font-family: Arial, Helvetica, sans-serif; font-size: 14px; fill: #707070; }
+      .arrow { fill: none; stroke: #000; stroke-width: 1.7; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1400" height="690" fill="#fff"/>
+
+  <!-- Primary flow -->
+  <rect class="box" x="30" y="55" width="170" height="180"/>
+  <text class="heading" x="46" y="91">INPUT</text>
+  <text class="copy" x="46" y="125">A thought and a</text>
+  <text class="copy" x="46" y="147">product choice</text>
+
+  <rect class="box" x="225" y="55" width="170" height="180"/>
+  <text class="heading" x="241" y="91">GATE</text>
+  <text class="copy" x="241" y="125">Validation, rate</text>
+  <text class="copy" x="241" y="147">limit, injection and</text>
+  <text class="copy" x="241" y="169">extraction checks</text>
+
+  <rect class="black-box" x="420" y="55" width="170" height="180"/>
+  <text class="heading-white" x="436" y="91">CALIBRATE</text>
+  <text class="copy-white" x="436" y="125">Ask only when</text>
+  <text class="copy-white" x="436" y="147">ambiguity changes</text>
+  <text class="copy-white" x="436" y="169">the result; one</text>
+  <text class="copy-white" x="436" y="191">question max</text>
+
+  <rect class="box" x="615" y="55" width="170" height="180"/>
+  <text class="heading" x="631" y="91">CONFIRM</text>
+  <text class="copy" x="631" y="125">Visitor accepts,</text>
+  <text class="copy" x="631" y="147">corrects once, or</text>
+  <text class="copy" x="631" y="169">lets the machine</text>
+  <text class="copy" x="631" y="191">decide</text>
+
+  <rect class="black-box" x="810" y="55" width="170" height="180"/>
+  <text class="heading-white" x="826" y="91">GENERATE</text>
+  <text class="copy-white" x="826" y="125">Confirmed context,</text>
+  <text class="copy-white" x="826" y="147">profile and facts</text>
+  <text class="copy-white" x="826" y="169">as data; DeepSeek</text>
+  <text class="copy-white" x="826" y="191">via SiliconFlow</text>
+
+  <rect class="box" x="1005" y="55" width="170" height="180"/>
+  <text class="heading" x="1021" y="91">VALIDATE</text>
+  <text class="copy" x="1021" y="125">Parse, length caps,</text>
+  <text class="copy" x="1021" y="147">content filter and</text>
+  <text class="copy" x="1021" y="169">trace allowlist</text>
+
+  <rect class="box" x="1200" y="55" width="170" height="180"/>
+  <text class="heading" x="1216" y="91">OUTPUT</text>
+  <text class="copy" x="1216" y="125">Object with method</text>
+  <text class="copy" x="1216" y="147">and source chips</text>
+
+  <path class="arrow" d="M200 145 H220"/>
+  <path class="arrow" d="M395 145 H415"/>
+  <path class="arrow" d="M590 145 H610"/>
+  <path class="arrow" d="M785 145 H805"/>
+  <path class="arrow" d="M980 145 H1000"/>
+  <path class="arrow" d="M1175 145 H1195"/>
+
+  <!-- Bounded human feedback -->
+  <path class="arrow" d="M700 235 V260 H505 V240"/>
+  <text class="loop" x="532" y="278">ANSWER OR CORRECT · ONE LOOP MAX</text>
+
+  <!-- Legend -->
+  <rect x="30" y="292" width="17" height="17" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text class="meta" x="57" y="307">Deterministic code</text>
+  <rect x="215" y="292" width="17" height="17" fill="#000"/>
+  <text class="meta" x="242" y="307">Probabilistic model</text>
+  <path class="arrow" d="M420 300 H450"/>
+  <text class="meta" x="462" y="307">Signed 20-minute state ticket · no server-side session</text>
+
+  <!-- Trust boundary -->
+  <rect class="box" x="30" y="345" width="425" height="250"/>
+  <text class="heading" x="57" y="388">MODEL SEES</text>
+  <rect x="57" y="415" width="10" height="10" fill="#000"/>
+  <text class="panel-copy" x="79" y="426">Visitor input as data</text>
+  <rect x="57" y="454" width="10" height="10" fill="#000"/>
+  <text class="panel-copy" x="79" y="465">Confirmed answer or declared assumption</text>
+  <rect x="57" y="493" width="10" height="10" fill="#000"/>
+  <text class="panel-copy" x="79" y="504">12 approved behavioral traits</text>
+  <rect x="57" y="532" width="10" height="10" fill="#000"/>
+  <text class="panel-copy" x="79" y="543">9 approved public facts</text>
+
+  <rect class="box" x="487" y="345" width="425" height="250"/>
+  <text class="heading" x="514" y="388">MODEL NEVER SEES</text>
+  <rect x="514" y="415" width="10" height="10" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text class="panel-copy" x="536" y="426">Vault or private notes</text>
+  <rect x="514" y="454" width="10" height="10" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text class="panel-copy" x="536" y="465">Files, names, contacts or private memory</text>
+  <rect x="514" y="493" width="10" height="10" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text class="panel-copy" x="536" y="504">Other visitors or their history</text>
+  <rect x="514" y="532" width="10" height="10" fill="#fff" stroke="#000" stroke-width="2"/>
+  <text class="panel-copy" x="536" y="543">A persistent conversation database</text>
+
+  <rect class="black-box" x="944" y="345" width="426" height="250"/>
+  <text class="heading-white" x="971" y="388">HUMAN DECIDES</text>
+  <rect x="971" y="415" width="10" height="10" fill="#fff"/>
+  <text class="panel-copy-white" x="993" y="426">Whether the machine understood correctly</text>
+  <rect x="971" y="454" width="10" height="10" fill="#fff"/>
+  <text class="panel-copy-white" x="993" y="465">What enters the public profile</text>
+  <rect x="971" y="493" width="10" height="10" fill="#fff"/>
+  <text class="panel-copy-white" x="993" y="504">How answers are scored</text>
+  <rect x="971" y="532" width="10" height="10" fill="#fff"/>
+  <text class="panel-copy-white" x="993" y="543">What ships</text>
+
+  <text class="footer" x="30" y="642">PUBLIC-ONLY RUNTIME · ONE CLARIFICATION MAX · ONE CORRECTION MAX · NO VAULT · NO VECTOR DATABASE · NO PERSISTENT LEARNING</text>
+</svg>
