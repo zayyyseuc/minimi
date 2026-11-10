@@ -5,7 +5,7 @@ require('dotenv').config();
 const { looksLikeExtractionAttempt, cleanText } = require('./privacy');
 const { getBehavioralProfile, getPublicFacts, getPublicSources, getPublicBasis } = require('./public-profile');
 
-const PROMPT_VERSION = 'vending-products-v4-decisive-judgment';
+const PROMPT_VERSION = 'vending-products-v5-visual-synthesis';
 const MODEL = process.env.VENDING_MODEL || 'deepseek-ai/DeepSeek-V4-Flash';
 
 const PRODUCTS = {
@@ -107,6 +107,25 @@ function projectJudgmentGuidance(language) {
 - Keep the answer compact and natural in ${language === 'zh' ? 'Chinese' : 'English'}; one clear judgment is more useful than a survey of every project.\n`;
 }
 
+function isVisualStyleQuery(input) {
+  const text = String(input || '').toLowerCase();
+  return [
+    /(?:zai|her|your).{0,24}(?:aesthetic|visual style|visual language|design language|look and feel)/,
+    /(?:aesthetic|visual style|visual language|design language|look and feel).{0,24}(?:zai|her|your)/,
+    /(?:视觉风格|审美|设计语言|视觉语言|作品集风格)/,
+  ].some(pattern => pattern.test(text));
+}
+
+function visualStyleGuidance(language) {
+  return `\nVISUAL STYLE SYNTHESIS MODE:
+- The visitor is asking for a synthesis of visible work, not a quotation of a documented personal preference.
+- Answer directly. Do not say the aesthetic is undocumented, unstated, unknown, or impossible to infer.
+- Base the synthesis on the approved visual-language fact and published projects. Distinguish observation from interpretation without turning that distinction into a disclaimer.
+- Name the overall aesthetic, then support it with concrete traits across palette, typography and hierarchy, composition, imagery, diagrams, and technical evidence.
+- Describe what is visibly recurring across the portfolio. Do not reduce visual style to abstract values such as privacy, legibility, or mechanism.
+- Use a compact, confident paragraph in ${language === 'zh' ? 'Chinese' : 'English'}.\n`;
+}
+
 function personalBoundaryArtifact(product, language) {
   const zh = language === 'zh';
   const profile = getBehavioralProfile();
@@ -148,12 +167,14 @@ async function generateProduct({ input, product, mode = 'learned' }) {
   const language = primaryLanguage(input);
   const asksPersonalHistory = isPersonalHistoryQuery(input);
   const asksProjectJudgment = mode === 'learned' && isProjectJudgmentQuery(input);
+  const asksVisualStyle = mode === 'learned' && isVisualStyleQuery(input);
   const facts = mode === 'learned' ? getPublicFacts() : [];
   if (asksPersonalHistory && facts.length === 0) return personalBoundaryArtifact(product, language);
   const factContext = facts.length
     ? `\nOWNER-APPROVED PUBLIC FACTS (use only these facts for claims about Zai):\n${JSON.stringify(facts)}\n`
     : '';
   const judgmentContext = asksProjectJudgment ? projectJudgmentGuidance(language) : '';
+  const visualStyleContext = asksVisualStyle ? visualStyleGuidance(language) : '';
   const system = `You are the behavioral engine inside Zai Vending Machine. You generate a new response shaped by Zai's approved public practice profile.
 
 PRIVACY BOUNDARY:
@@ -169,13 +190,14 @@ PRIVACY BOUNDARY:
 PRODUCT: ${PRODUCTS[product].label}
 ${PRODUCTS[product].instruction}
 ${judgmentContext}
+${visualStyleContext}
 
 APPROVED BEHAVIORAL PROFILE (${profile.version}):
 ${JSON.stringify(profile.dimensions)}
 ${factContext}
 
 OUTPUT CONTRACT:
-Return only valid JSON: {"title":"2-6 word title","message":"${asksProjectJudgment ? '45-90' : '45-140'} words of plain text","behavioralTrace":["1-3 exact characteristic ids from the approved profile that materially shaped this response"],"factTrace":["0-3 exact fact ids that directly support this response"]}.
+Return only valid JSON: {"title":"2-6 word title","message":"${asksProjectJudgment ? '45-90' : asksVisualStyle ? '55-110' : '45-140'} words of plain text","behavioralTrace":["1-3 exact characteristic ids from the approved profile that materially shaped this response"],"factTrace":["0-3 exact fact ids that directly support this response"]}.
 For questions about Zai or her work, use at least one relevant public fact and return its exact id in factTrace. Never put an id in factTrace unless the response actually used that fact. No markdown, private source names, unsupported personal claims, or extra keys.`;
 
   const completion = await client().chat.completions.create({
@@ -237,4 +259,4 @@ For questions about Zai or her work, use at least one relevant public fact and r
   };
 }
 
-module.exports = { PRODUCTS, PROMPT_VERSION, GENERIC_PROFILE, generateProduct, profileForMode, primaryLanguage, isPersonalHistoryQuery, isProjectJudgmentQuery, projectJudgmentGuidance, personalBoundaryArtifact };
+module.exports = { PRODUCTS, PROMPT_VERSION, GENERIC_PROFILE, generateProduct, profileForMode, primaryLanguage, isPersonalHistoryQuery, isProjectJudgmentQuery, projectJudgmentGuidance, isVisualStyleQuery, visualStyleGuidance, personalBoundaryArtifact };

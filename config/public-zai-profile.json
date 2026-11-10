@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "version": "public-resume-portfolio-2026-11-10-v1",
+  "version": "public-resume-portfolio-2026-11-10-v2",
   "status": "owner-approved-public",
   "updatedAt": "2026-11-10T00:00:00.000Z",
   "sourcePolicy": {
@@ -191,6 +191,23 @@
       "tags": ["smart hardware", "pet companionship", "ambient interaction", "IoT", "privacy"],
       "publicUrl": "https://zayyyseuc.github.io/portfolio/p_pet.html",
       "sourceIds": ["resume", "portfolio-pdf", "portfolio-site"]
+    },
+    {
+      "id": "visual-language-portfolio",
+      "type": "visual-language",
+      "title": "Portfolio Visual Language",
+      "summary": "An evidence-dense, systems-oriented editorial style that combines high-contrast presentation fields, project-specific accent colors, modular information grids, and large visual anchors with visible technical process.",
+      "details": [
+        "The portfolio alternates white and black presentation fields while assigning projects distinct accent systems, including burgundy red, forest green and teal, electric blue, yellow, and purple.",
+        "Pages use oversized sans-serif headings, strong hierarchy, framed modules, dense grids, timelines, flow diagrams, charts, annotations, and technical process boards.",
+        "Large product photographs, cinematic environment renders, collages, and human or animal imagery anchor otherwise information-rich compositions.",
+        "Code, hardware, workflows, experiments, and validation results remain visibly present, producing a research-forward and speculative-technical tone rather than polished minimalism.",
+        "Decoration usually follows each project's subject matter, but the recurring structure is high contrast, modular density, visible evidence, and a tension between cinematic atmosphere and engineering documentation."
+      ],
+      "whyInteresting": "The visual system treats complexity as material: it does not hide the research and machinery, but organizes them into an editorial narrative with a distinct atmosphere for each project.",
+      "tags": ["visual identity", "editorial design", "information design", "systems design", "technical storytelling"],
+      "publicUrl": "https://zayyyseuc.github.io/portfolio/",
+      "sourceIds": ["portfolio-pdf", "portfolio-site"]
     },
     {
       "id": "education-nankai",

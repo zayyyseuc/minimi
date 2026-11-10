@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build:vending": "node scripts/build-vending.js",
+    "eval:vending": "node scripts/evaluate-vending.js",
     "test": "node --test",
     "test:vending": "node --test test/vending.test.js",
     "start": "node src/server.js",

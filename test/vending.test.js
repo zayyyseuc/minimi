@@ -6,7 +6,7 @@ const path = require('path');
 const { sanitizeForApproval, sanitizeShowcase, hashShingles, checkOutputOverlap, looksLikeExtractionAttempt } = require('../src/vending/privacy');
 const { inferProfile } = require('../src/vending/learning');
 const { validInput, statusPayload } = require('../src/vending/public-api');
-const { primaryLanguage, isPersonalHistoryQuery, isProjectJudgmentQuery, projectJudgmentGuidance, personalBoundaryArtifact } = require('../src/vending/generator');
+const { primaryLanguage, isPersonalHistoryQuery, isProjectJudgmentQuery, projectJudgmentGuidance, isVisualStyleQuery, visualStyleGuidance, personalBoundaryArtifact } = require('../src/vending/generator');
 const publicProfile = require('../config/public-zai-profile.json');
 
 test('approval removes private rationale and retains only safe fields', () => {
@@ -95,6 +95,18 @@ test('project preference questions trigger decisive editorial judgment', () => {
   assert.match(guidance, /Do not substitute documentation volume/);
 });
 
+test('visual-style questions trigger evidence-based synthesis', () => {
+  assert.equal(isVisualStyleQuery("What is Zai's aesthetic?"), true);
+  assert.equal(isVisualStyleQuery('Describe her visual language.'), true);
+  assert.equal(isVisualStyleQuery('你的作品集视觉风格是什么？'), true);
+  assert.equal(isVisualStyleQuery('What is the strongest project?'), false);
+
+  const guidance = visualStyleGuidance('en');
+  assert.match(guidance, /Answer directly/);
+  assert.match(guidance, /palette, typography and hierarchy, composition, imagery, diagrams, and technical evidence/);
+  assert.match(guidance, /Do not reduce visual style to abstract values/);
+});
+
 test('public showcase keeps only explicitly approved bounded fields', () => {
   const result = sanitizeShowcase({ items: [
     { id: 'p1', title: 'Public Project', description: 'An owner-approved public description.', whyInteresting: 'It tests a clear mechanism.', tags: ['design'], approved: true, source: 'private.md' },
@@ -128,6 +140,9 @@ test('committed public profile contains the five published projects without cont
   assert.equal(serialized.includes('chen_seuc@qq.com'), false);
   assert.equal(serialized.includes('zchanzay@gmail.com'), false);
   assert.equal(serialized.includes('/Users/'), false);
+  const visualLanguage = publicProfile.facts.find(item => item.id === 'visual-language-portfolio');
+  assert.ok(visualLanguage);
+  assert.match(visualLanguage.summary, /evidence-dense/);
 });
 
 test('public status is deploy-safe even when the model key is absent', () => {
@@ -136,7 +151,7 @@ test('public status is deploy-safe even when the model key is absent', () => {
   const status = statusPayload();
   assert.equal(status.ready, false);
   assert.equal(status.personalized, true);
-  assert.equal(status.publicFactCount, 8);
+  assert.equal(status.publicFactCount, 9);
   assert.equal(status.basis.sourceCount, 3);
   if (previous) process.env.SILICONFLOW_API_KEY = previous;
 });
