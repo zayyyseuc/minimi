@@ -10,10 +10,77 @@
   const overlay = document.querySelector('#artifactOverlay');
   const artifact = document.querySelector('#artifact');
   const toast = document.querySelector('#toast');
+  const parallaxShell = document.querySelector('.machine-parallax-shell');
   let selectedProduct = 'reality_check';
   let working = false;
   let lastArtifact = null;
   let toastTimer;
+
+  function setupParallax() {
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (!parallaxShell || !finePointer.matches || reducedMotion.matches) return () => {};
+
+    const current = { x: 0, y: 0 };
+    const target = { x: 0, y: 0 };
+    let frame = 0;
+
+    function applyFrame() {
+      current.x += (target.x - current.x) * .085;
+      current.y += (target.y - current.y) * .085;
+
+      const x = Math.abs(current.x) < .0005 ? 0 : current.x;
+      const y = Math.abs(current.y) < .0005 ? 0 : current.y;
+      parallaxShell.style.setProperty('--tilt-x', `${(-y * 3).toFixed(3)}deg`);
+      parallaxShell.style.setProperty('--tilt-y', `${(x * 3).toFixed(3)}deg`);
+      parallaxShell.style.setProperty('--glass-x', `${(x * 1.1).toFixed(2)}px`);
+      parallaxShell.style.setProperty('--glass-y', `${(y * .8).toFixed(2)}px`);
+      parallaxShell.style.setProperty('--products-x', `${(x * 3.1).toFixed(2)}px`);
+      parallaxShell.style.setProperty('--products-y', `${(y * 2.4).toFixed(2)}px`);
+      parallaxShell.style.setProperty('--console-x', `${(x * 1.7).toFixed(2)}px`);
+      parallaxShell.style.setProperty('--console-y', `${(y * 1.3).toFixed(2)}px`);
+      parallaxShell.style.setProperty('--reflection-x', `${(x * 72).toFixed(1)}px`);
+      parallaxShell.style.setProperty('--reflection-y', `${(y * 28).toFixed(1)}px`);
+      parallaxShell.style.setProperty('--shadow-x', `${(-x * 4).toFixed(2)}px`);
+      parallaxShell.style.setProperty('--shadow-y', `${(y * 3).toFixed(2)}px`);
+      document.documentElement.style.setProperty('--parallax-bg-x', `${(-x * 1.6).toFixed(2)}px`);
+      document.documentElement.style.setProperty('--parallax-bg-y', `${(-y * 1.6).toFixed(2)}px`);
+
+      const settled = Math.abs(target.x - current.x) < .0005 && Math.abs(target.y - current.y) < .0005;
+      if (!settled) frame = requestAnimationFrame(applyFrame);
+      else {
+        frame = 0;
+        parallaxShell.classList.remove('is-parallax-active');
+      }
+    }
+
+    function startFrame() {
+      parallaxShell.classList.add('is-parallax-active');
+      if (!frame) frame = requestAnimationFrame(applyFrame);
+    }
+
+    function onPointerMove(event) {
+      const rect = parallaxShell.getBoundingClientRect();
+      target.x = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width) * 2 - 1));
+      target.y = Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height) * 2 - 1));
+      startFrame();
+    }
+
+    function returnToNeutral() {
+      target.x = 0;
+      target.y = 0;
+      startFrame();
+    }
+
+    parallaxShell.addEventListener('pointermove', onPointerMove, { passive: true });
+    parallaxShell.addEventListener('pointerleave', returnToNeutral, { passive: true });
+    parallaxShell.addEventListener('pointercancel', returnToNeutral, { passive: true });
+    window.addEventListener('blur', returnToNeutral);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) returnToNeutral(); });
+    return returnToNeutral;
+  }
+
+  const resetParallax = setupParallax();
 
   const productNames = {
     reality_check: 'A–01 · REALITY CHECK',
@@ -155,6 +222,7 @@
   }
 
   function openArtifact() {
+    resetParallax();
     overlay.hidden = false;
     document.body.style.overflow = 'hidden';
     requestAnimationFrame(() => document.querySelector('.artifact-close').focus());
