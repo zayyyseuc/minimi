@@ -18,12 +18,26 @@ const { getReview }                        = require('./reviewer');
 const { list: listImaginations, get: getImagination, create: createImagination, append: appendImagination } = require('./imaginations');
 const { save: saveConv, list: listConvs, get: getConv, remove: removeConv } = require('./conversations');
 const { momIndex, ensureIndex: ensureMomIndex, getPublicFiles, stripFrontmatter } = require('./mom-indexer');
+const { router: vendingRouter }             = require('./vending/routes');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
+
+// A public Vending Machine deployment must not expose Personal Brain's owner APIs.
+// Local/default mode remains unchanged and continues to serve every existing feature.
+if (process.env.PUBLIC_VENDING_ONLY === 'true') {
+  const publicVendingPaths = new Set(['/api/vending/status', '/api/vending/dispense']);
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/') && !publicVendingPaths.has(req.path)) {
+      return res.status(404).json({ error: 'Not available on the public vending server' });
+    }
+    next();
+  });
+}
+app.use('/api/vending', vendingRouter);
 
 // ── 活动打点：记录 Zia 使用 personal-brain 的频次，供热力图使用 ──
 const DATA_DIR = path.join(__dirname, '../data');

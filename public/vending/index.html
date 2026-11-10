@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e35332">
+  <title>Zai Vending Machine — Thoughts In, Strange Things Out</title>
+  <link rel="stylesheet" href="/vending/machine.css">
+</head>
+<body>
+  <a class="skip-link" href="#machine">Skip to machine</a>
+  <header class="site-head">
+    <a class="wordmark" href="/vending/" aria-label="Zai Vending Machine home">
+      <span class="wordmark-mark">Z</span>
+      <span>ZAI VENDING MACHINE</span>
+    </a>
+    <div class="head-meta">
+      <span id="profileSignal" class="signal"><i></i> CALIBRATING</span>
+      <a href="/vending-owner/">OWNER PANEL ↗</a>
+    </div>
+  </header>
+
+  <main id="machine" class="stage">
+    <section class="intro" aria-labelledby="pageTitle">
+      <p class="eyebrow">AUTOMATED INTELLECTUAL GOODS · UNIT 01</p>
+      <h1 id="pageTitle">Insert a thought.<br><em>Collect a strange object.</em></h1>
+      <p>This machine has learned a way of thinking—not a library of secrets. Feed it a question, idea, observation, or tiny crisis.</p>
+    </section>
+
+    <section class="vending-machine" aria-label="Interactive vending machine">
+      <div class="machine-top">
+        <span>ZVM / 01</span>
+        <strong>思考自动販売機</strong>
+        <span class="live-light"><i></i> ONLINE</span>
+      </div>
+
+      <div class="machine-body">
+        <div class="cabinet">
+          <div class="cabinet-glass">
+            <div class="glass-label"><span>SELECT ONE</span><span>¥ 0.00</span></div>
+            <div class="product-grid" role="radiogroup" aria-label="Choose a product">
+              <button class="product selected" role="radio" aria-checked="true" data-product="reality_check">
+                <span class="coil" aria-hidden="true"></span>
+                <span class="pack pack-reality">
+                  <small>A–01</small><b>REALITY<br>CHECK</b><i>ONE SHARP THING</i>
+                </span>
+                <span class="product-caption"><b>A</b><span>Reality Check</span></span>
+              </button>
+              <button class="product" role="radio" aria-checked="false" data-product="unexpected_connection">
+                <span class="coil" aria-hidden="true"></span>
+                <span class="pack pack-connection">
+                  <small>B–02</small><b>ODD<br>LINK</b><i>BRIDGE INCLUDED</i>
+                </span>
+                <span class="product-caption"><b>B</b><span>Unexpected Connection</span></span>
+              </button>
+              <button class="product" role="radio" aria-checked="false" data-product="wild_card">
+                <span class="coil" aria-hidden="true"></span>
+                <span class="pack pack-wild">
+                  <small>C–??</small><b>WILD<br>CARD</b><i>OPEN CAREFULLY</i>
+                </span>
+                <span class="product-caption"><b>C</b><span>Wild Card</span></span>
+              </button>
+            </div>
+          </div>
+          <div class="cabinet-footer"><span>BEHAVIOR, NOT MEMORIES</span><span>NO RETURNS · MAY CAUSE IDEAS</span></div>
+        </div>
+
+        <div class="console">
+          <div class="screen" aria-live="polite">
+            <div class="screen-head"><span>INPUT TERMINAL</span><span id="charCount">0000 / 1200</span></div>
+            <div id="screenMessage" class="screen-message">01 — INSERT SOMETHING TRUE, MESSY, OR UNFINISHED.</div>
+            <div class="meter"><i id="meterFill"></i></div>
+          </div>
+
+          <label class="input-module">
+            <span>YOUR THOUGHT / 観察 / DILEMMA</span>
+            <textarea id="thoughtInput" maxlength="1200" rows="5" placeholder="I have an idea for an app that…"></textarea>
+            <span class="slot-mouth" aria-hidden="true"><i></i></span>
+          </label>
+
+          <div class="controls">
+            <button id="surpriseButton" class="surprise-button" type="button">
+              <span>?</span> SURPRISE ME
+            </button>
+            <div class="lever-panel">
+              <div class="lever-copy"><small>FINAL STEP</small><b>PULL TO DISPENSE</b></div>
+              <button id="lever" class="lever" type="button" aria-label="Pull lever to dispense">
+                <span class="lever-track"><i class="lever-stem"></i><b class="lever-knob"></b></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="machine-bottom">
+        <div class="service-stickers" aria-hidden="true"><span>NO RAW NOTES</span><span>PRIVACY SEALED</span><span>★ 変な考え ★</span></div>
+        <div id="collectionBay" class="collection-bay" tabindex="-1">
+          <span class="bay-label">COLLECT HERE / 受取口</span>
+          <div class="bay-door"><span id="dropObject" class="drop-object"></span><i></i></div>
+        </div>
+        <div class="machine-number">01<span>BUILT FOR<br>BEAUTIFUL FRICTION</span></div>
+      </div>
+      <div class="machine-feet" aria-hidden="true"><i></i><i></i></div>
+    </section>
+
+    <p class="privacy-note"><b>THE SMALL PRINT:</b> Public generation uses an owner-approved behavioral profile. It cannot search the private vault, retrieve notes, or expose source passages.</p>
+  </main>
+
+  <div id="artifactOverlay" class="artifact-overlay" hidden>
+    <div class="overlay-scrim" data-close></div>
+    <article id="artifact" class="artifact" role="dialog" aria-modal="true" aria-labelledby="artifactTitle">
+      <button class="artifact-close" type="button" data-close aria-label="Close artifact">×</button>
+      <div class="artifact-kicker"><span id="artifactLabel">PRODUCT</span><span id="artifactSerial">NO. 0000</span></div>
+      <div class="artifact-icon" aria-hidden="true"><span></span></div>
+      <h2 id="artifactTitle"></h2>
+      <p id="artifactMessage"></p>
+      <div id="artifactTrace" class="artifact-trace" hidden></div>
+      <div class="artifact-meta"><span id="artifactProfile">PROFILE —</span><span id="artifactPrompt">PROMPT —</span></div>
+      <div class="artifact-actions">
+        <button id="copyButton" type="button">COPY</button>
+        <button id="saveButton" type="button">SAVE OBJECT</button>
+        <button id="againButton" class="primary-action" type="button">DISPENSE AGAIN</button>
+      </div>
+    </article>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/vending/machine.js" defer></script>
+</body>
+</html>

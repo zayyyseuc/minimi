@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172a2b">
+  <title>ZVM Owner Calibration</title>
+  <link rel="stylesheet" href="/vending-owner/owner.css">
+</head>
+<body>
+  <header class="topbar">
+    <a href="/vending/">← MACHINE FLOOR</a>
+    <strong>ZVM / OWNER CALIBRATION</strong>
+    <span>PRIVATE SURFACE</span>
+  </header>
+
+  <main>
+    <section id="authGate" class="auth-gate">
+      <div>
+        <p class="kicker">OWNER AUTHENTICATION</p>
+        <h1>The machine does not<br>learn behind your back.</h1>
+        <p>Enter the token configured as <code>VENDING_OWNER_TOKEN</code>. It stays in this browser tab and is sent only to owner endpoints.</p>
+        <form id="authForm">
+          <input id="tokenInput" type="password" autocomplete="current-password" placeholder="Owner token" required>
+          <button>UNLOCK PANEL →</button>
+        </form>
+        <p id="authError" class="error" role="alert"></p>
+      </div>
+    </section>
+
+    <div id="dashboard" class="dashboard" hidden>
+      <section class="hero">
+        <div>
+          <p class="kicker">BEHAVIORAL DISTILLATION / LOCAL MODE</p>
+          <h1>What does the machine<br>think it learned?</h1>
+        </div>
+        <div class="hero-actions">
+          <p>Refresh reads the private vault locally. It creates a draft and hashed overlap fingerprints; it never publishes automatically.</p>
+          <button id="learnButton" class="primary">↻ LEARN FROM VAULT</button>
+        </div>
+      </section>
+
+      <section class="status-strip">
+        <div><small>ACTIVE PROFILE</small><b id="activeVersion">BASELINE</b></div>
+        <div><small>DRAFTS</small><b id="draftCount">0</b></div>
+        <div><small>APPROVED HISTORY</small><b id="approvedCount">0</b></div>
+        <div><small>PUBLIC PROJECTS</small><b id="showcaseCount">0</b></div>
+        <div><small>ANALYSIS MODE</small><b>LOCAL ONLY</b></div>
+      </section>
+
+      <nav class="tabs" aria-label="Owner tools">
+        <button class="active" data-tab="review">01 · REVIEW DRAFT</button>
+        <button data-tab="history">02 · VERSION HISTORY</button>
+        <button data-tab="evaluate">03 · BEHAVIOR LAB</button>
+        <button data-tab="showcase">04 · PUBLIC SHOWCASE</button>
+      </nav>
+
+      <section id="reviewPanel" class="panel active">
+        <div class="panel-head">
+          <div><p class="kicker">DRAFT PROFILE</p><h2>Approve the pattern,<br>not the passage.</h2></div>
+          <label>CHOOSE DRAFT<select id="draftSelect"></select></label>
+        </div>
+        <div id="draftEmpty" class="empty">No draft yet. Run a local learning refresh to create one.</div>
+        <form id="profileForm" hidden>
+          <div id="profileMeta" class="profile-meta"></div>
+          <div id="dimensions"></div>
+          <div class="publish-bar">
+            <p>Only checked characteristics and your edits enter the approved profile. Rationales and analysis statistics remain private.</p>
+            <button class="primary" type="submit">APPROVE & PUBLISH PROFILE →</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="historyPanel" class="panel">
+        <div class="panel-head"><div><p class="kicker">PROFILE VERSIONS</p><h2>Personality should<br>have a paper trail.</h2></div></div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+
+      <section id="evaluatePanel" class="panel">
+        <div class="panel-head">
+          <div><p class="kicker">A / B / C COMPARISON</p><h2>Did it learn—or just<br>decorate the answer?</h2></div>
+          <p class="panel-note">One identical input. One product constraint. Three behavioral configurations. Runs are stored privately with prompt and profile versions.</p>
+        </div>
+        <form id="evalForm" class="eval-form">
+          <textarea id="evalInput" maxlength="1200" placeholder="Insert the exact same test input…" required></textarea>
+          <select id="evalProduct">
+            <option value="reality_check">REALITY CHECK</option>
+            <option value="unexpected_connection">UNEXPECTED CONNECTION</option>
+            <option value="wild_card">WILD CARD</option>
+          </select>
+          <button class="primary">RUN 3-WAY TEST →</button>
+        </form>
+        <div id="evalResults" class="eval-results"></div>
+      </section>
+
+      <section id="showcasePanel" class="panel">
+        <div class="panel-head">
+          <div><p class="kicker">OWNER-APPROVED PUBLIC FACTS</p><h2>Teach facts without<br>opening the vault.</h2></div>
+          <p class="panel-note">Only projects entered and saved here may be mentioned as Zai's real work. This list is separate from the private vault and behavioral profile.</p>
+        </div>
+        <form id="showcaseForm">
+          <div id="showcaseItems" class="showcase-items"></div>
+          <div class="showcase-actions">
+            <button id="addProjectButton" type="button">＋ ADD PUBLIC PROJECT</button>
+            <button class="primary" type="submit">SAVE APPROVED SHOWCASE →</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <div id="notice" class="notice" role="status"></div>
+  <script src="/vending-owner/owner.js" defer></script>
+</body>
+</html>

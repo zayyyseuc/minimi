@@ -15,6 +15,8 @@ A local-first personal knowledge assistant that lets you search, chat with, and 
 - **Auto file watching**: vault changes are re-indexed automatically via chokidar
 - **Mom PWA** (`/mom`): a separate installable interface for family — shows your status card, activity heatmap, recent public notes, and a milestone countdown; only surfaces notes with `public: true` in frontmatter, backed by a separate vector index
 - **Mobile-friendly UI**: responsive single-page app served from `public/index.html`, tested on iOS Safari
+- **Zai Vending Machine** (`/vending/`): a tactile public experience that generates Reality Checks, Unexpected Connections, and Wild Cards from an owner-approved behavioral profile—without retrieving private notes
+- **Owner calibration panel** (`/vending-owner/`): local behavioral learning, characteristic review, version approval/revert, and three-way behavior evaluation
 
 ## Tech stack
 
@@ -65,6 +67,13 @@ MOM_EXCLUDED_FOLDERS=private,journal   # comma-separated folders to skip when bu
 TAVILY_API_KEY=your_tavily_key_here
 
 PORT=3000
+
+# Zai Vending Machine owner operations (required for /vending-owner/)
+VENDING_OWNER_TOKEN=choose-a-long-random-token
+
+# Set only on a dedicated public vending deployment. This disables every
+# Personal Brain, Mom, and owner API except vending status + dispense.
+PUBLIC_VENDING_ONLY=false
 ```
 
 ## First-time indexing
@@ -95,6 +104,10 @@ Open `http://localhost:3000` in your browser. On subsequent runs the file watche
 
 The Mom PWA is at `http://localhost:3000/mom` — installable on iOS/Android via "Add to Home Screen."
 
+The Zai Vending Machine is at `http://localhost:3000/vending/`. Its private learning and evaluation panel is at `http://localhost:3000/vending-owner/`. The machine works in a non-personal safe-baseline mode until you run a local learning refresh and explicitly approve a profile.
+
+See [`docs/vending-architecture.md`](docs/vending-architecture.md) for the privacy boundary, lifecycle, evaluation workflow, deployment isolation, and known limitations.
+
 ## Mom PWA: public notes
 
 Notes are visible to mom only when their frontmatter contains:
@@ -113,6 +126,8 @@ All other notes are excluded from the mom index. Folders listed in `MOM_EXCLUDED
 personal-brain/
 ├── public/
 │   ├── index.html            # Main single-page UI
+│   ├── vending/              # Public Vending Machine interface
+│   ├── vending-owner/        # Authenticated local calibration panel
 │   └── mom/
 │       ├── index.html        # Mom PWA shell
 │       ├── manifest.json     # PWA manifest
@@ -128,7 +143,8 @@ personal-brain/
 │   ├── lab.js                # Idea capture and Lab note management
 │   ├── imaginations.js       # Imagination note read/write
 │   ├── reminders.js          # Simple reminder store (JSON)
-│   └── conversations.js      # Conversation persistence (JSON per file)
+│   ├── conversations.js      # Conversation persistence (JSON per file)
+│   └── vending/              # Learning, privacy, profiles, generation, routes
 ├── persona.example.md        # Persona template — copy to persona.md and fill in
 ├── persona.md                # Your persona and rules — gitignored, loaded at startup
 ├── data/                     # Runtime data — gitignored
