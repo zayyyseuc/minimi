@@ -142,7 +142,7 @@
       button.setAttribute('aria-checked', String(active));
     });
     if (announce) {
-      screen.textContent = `02 — ${productNames[id]} LOADED. PULL WHEN READY.`;
+      screen.textContent = `02 — ${productNames[id]} READY.`;
       tinySound(280, .045);
     }
   }
@@ -153,7 +153,7 @@
     const length = input.value.length;
     count.textContent = `${String(length).padStart(4, '0')} / 1200`;
     meter.style.width = `${Math.max(2, length / 12)}%`;
-    if (length > 1) screen.textContent = `01 — TOKEN ACCEPTED. ${productNames[selectedProduct]} IS STANDING BY.`;
+    if (length > 1) screen.textContent = `01 — ${productNames[selectedProduct]} READY.`;
   });
 
   surprise.addEventListener('click', () => {
@@ -178,7 +178,7 @@
     working = true;
     lever.disabled = true;
     machine.classList.add('working');
-    screen.textContent = '03 — TUMBLERS TURNING · PROFILE ENGAGED…';
+    screen.textContent = '03 — PROCESSING…';
     tinySound(120, .09);
     const started = Date.now();
 
@@ -243,8 +243,6 @@
       chip.rel = 'noopener noreferrer';
       facts.appendChild(chip);
     });
-    document.querySelector('#artifactProfile').textContent = `PROFILE ${data.profileBasis?.label || data.profileVersion}`;
-    document.querySelector('#artifactPrompt').textContent = `BEHAVIOR ${data.promptVersion}`;
   }
 
   function openArtifact() {
@@ -291,7 +289,7 @@
     .then(response => response.json())
     .then(status => {
       const signal = document.querySelector('#profileSignal');
-      signal.textContent = status.personalized ? ' RÉSUMÉ + PORTFOLIO PROFILE ACTIVE' : ' SAFE BASELINE MODE';
+      signal.textContent = status.personalized ? ' PROFILE ACTIVE' : ' BASELINE MODE';
       signal.prepend(document.createElement('i'));
       signal.classList.toggle('personal', status.personalized);
     })

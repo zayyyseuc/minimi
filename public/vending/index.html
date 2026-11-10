@@ -22,60 +22,53 @@
 
   <main id="machine" class="stage">
     <section class="intro" aria-labelledby="pageTitle">
-      <p class="eyebrow">AUTOMATED INTELLECTUAL GOODS · UNIT 01</p>
       <h1 id="pageTitle">Insert a thought.<br><em>Collect a strange object.</em></h1>
-      <p>Built only from Zai's approved résumé, portfolio, and public website. Ask about her work, or feed it an idea, observation, or tiny crisis.</p>
     </section>
 
     <div class="machine-parallax-shell">
       <section class="vending-machine" aria-label="Interactive vending machine">
       <div class="machine-top">
         <span>ZVM / 01</span>
-        <strong>思考自动販売機</strong>
         <span class="live-light"><i></i> ONLINE</span>
       </div>
 
       <div class="machine-body">
         <div class="cabinet">
           <div class="cabinet-glass">
-            <div class="glass-label"><span>SELECT ONE</span><span>¥ 0.00</span></div>
+            <div class="glass-label"><span>SELECT ONE</span></div>
             <div class="product-grid" role="radiogroup" aria-label="Choose a product">
               <button class="product selected" role="radio" aria-checked="true" data-product="reality_check">
                 <span class="coil" aria-hidden="true"></span>
                 <span class="pack pack-reality">
-                  <small>A–01</small><b>REALITY<br>CHECK</b><i>ONE SHARP THING</i>
+                  <small>A–01</small><b>REALITY<br>CHECK</b>
                 </span>
-                <span class="product-caption"><b>A</b><span>Reality Check</span></span>
               </button>
               <button class="product" role="radio" aria-checked="false" data-product="unexpected_connection">
                 <span class="coil" aria-hidden="true"></span>
                 <span class="pack pack-connection">
-                  <small>B–02</small><b>ODD<br>LINK</b><i>BRIDGE INCLUDED</i>
+                  <small>B–02</small><b>ODD<br>LINK</b>
                 </span>
-                <span class="product-caption"><b>B</b><span>Unexpected Connection</span></span>
               </button>
               <button class="product" role="radio" aria-checked="false" data-product="wild_card">
                 <span class="coil" aria-hidden="true"></span>
                 <span class="pack pack-wild">
-                  <small>C–??</small><b>WILD<br>CARD</b><i>OPEN CAREFULLY</i>
+                  <small>C–??</small><b>WILD<br>CARD</b>
                 </span>
-                <span class="product-caption"><b>C</b><span>Wild Card</span></span>
               </button>
             </div>
           </div>
-          <div class="cabinet-footer"><span>PUBLIC WORK, NOT PRIVATE MEMORY</span><span>NO RETURNS · MAY CAUSE IDEAS</span></div>
         </div>
 
         <div class="console">
           <div class="screen" aria-live="polite">
             <div class="screen-head"><span>INPUT TERMINAL</span><span id="charCount">0000 / 1200</span></div>
-            <div id="screenMessage" class="screen-message">01 — INSERT SOMETHING TRUE, MESSY, OR UNFINISHED.</div>
+            <div id="screenMessage" class="screen-message">01 — INSERT A THOUGHT.</div>
             <div class="meter"><i id="meterFill"></i></div>
           </div>
 
           <label class="input-module">
-            <span>YOUR THOUGHT / 観察 / DILEMMA</span>
-            <textarea id="thoughtInput" maxlength="1200" rows="5" placeholder="I have an idea for an app that…"></textarea>
+            <span>YOUR THOUGHT</span>
+            <textarea id="thoughtInput" maxlength="1200" rows="5" placeholder="Type here…"></textarea>
             <span class="slot-mouth" aria-hidden="true"><i></i></span>
           </label>
 
@@ -84,7 +77,7 @@
               <span>?</span> SURPRISE ME
             </button>
             <div class="lever-panel">
-              <div class="lever-copy"><small>FINAL STEP</small><b>PULL TO DISPENSE</b></div>
+              <div class="lever-copy"><b>PULL TO DISPENSE</b></div>
               <button id="lever" class="lever" type="button" aria-label="Pull lever to dispense">
                 <span class="lever-track"><i class="lever-stem"></i><b class="lever-knob"></b></span>
               </button>
@@ -94,18 +87,15 @@
       </div>
 
       <div class="machine-bottom">
-        <div class="service-stickers" aria-hidden="true"><span>NO RAW NOTES</span><span>PRIVACY SEALED</span><span>★ 変な考え ★</span></div>
         <div id="collectionBay" class="collection-bay" tabindex="-1">
-          <span class="bay-label">COLLECT HERE / 受取口</span>
+          <span class="bay-label">COLLECT HERE</span>
           <div class="bay-door"><span id="dropObject" class="drop-object"></span><i></i></div>
         </div>
-        <div class="machine-number">01<span>BUILT FOR<br>BEAUTIFUL FRICTION</span></div>
       </div>
       <div class="machine-feet" aria-hidden="true"><i></i><i></i></div>
       </section>
     </div>
 
-    <p class="privacy-note"><b>THE SMALL PRINT:</b> Public generation is grounded only in an owner-approved, contact-free profile distilled from Zai's résumé, portfolio PDF, and public website. It cannot search a private vault or retrieve private notes.</p>
   </main>
 
   <div id="artifactOverlay" class="artifact-overlay" hidden>
@@ -118,7 +108,6 @@
       <p id="artifactMessage"></p>
       <div id="artifactTrace" class="artifact-trace" hidden></div>
       <div id="artifactFacts" class="artifact-facts" hidden></div>
-      <div class="artifact-meta"><span id="artifactProfile">PROFILE —</span><span id="artifactPrompt">PROMPT —</span></div>
       <div class="artifact-actions">
         <button id="copyButton" type="button">COPY</button>
         <button id="saveButton" type="button">SAVE OBJECT</button>
