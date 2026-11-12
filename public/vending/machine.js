@@ -21,10 +21,16 @@
   const calibrationSecondary = document.querySelector('#calibrationSecondary');
   const calibrationContinue = document.querySelector('#calibrationContinue');
   const leverLabel = document.querySelector('#leverLabel');
+  const agentLogEl = document.querySelector('#agentLog');
+  const draftBox = document.querySelector('#calibrationDraft');
+  const draftTitle = document.querySelector('#calibrationDraftTitle');
+  const draftBody = document.querySelector('#calibrationDraftBody');
+  const keepButton = document.querySelector('#calibrationKeep');
   let selectedProduct = 'reality_check';
   let working = false;
   let conversationPhase = 'idle';
   let stateToken = '';
+  let confirmationStage = 'plan';
   let lastArtifact = null;
   let toastTimer;
   let pullFeedbackAnimation;
@@ -301,6 +307,10 @@
     calibrationOptions.innerHTML = '';
     calibrationReply.value = '';
     calibrationReply.closest('label').hidden = false;
+    agentLogEl.hidden = true;
+    agentLogEl.innerHTML = '';
+    draftBox.hidden = true;
+    keepButton.hidden = true;
     input.disabled = false;
     setModeControlsDisabled(false);
     leverLabel.textContent = 'PULL TO CALIBRATE';
@@ -324,42 +334,81 @@
     });
   }
 
+  function renderProgress(lamps) {
+    agentLogEl.innerHTML = '';
+    const items = Array.isArray(lamps) ? lamps : [];
+    agentLogEl.hidden = items.length === 0;
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.className = item.state;
+      li.textContent = item.label;
+      agentLogEl.appendChild(li);
+    });
+  }
+
   function renderConversationTurn(data) {
     stateToken = data.stateToken || '';
     input.disabled = true;
     setModeControlsDisabled(true);
     calibrationPanel.hidden = false;
     calibrationReply.value = '';
+    draftBox.hidden = true;
+    keepButton.hidden = true;
+    renderProgress(data.progress);
 
     if (data.type === 'clarification') {
       conversationPhase = 'clarification';
-      calibrationStep.textContent = `CALIBRATION ${data.turn || 1} / ${data.maxTurns || 1}`;
+      calibrationStep.textContent = `ONE QUESTION · ${data.turn || 1} / ${data.maxTurns || 1}`;
       calibrationText.textContent = data.question;
       renderOptions(Array.isArray(data.options) ? data.options : []);
       calibrationReply.closest('label').hidden = false;
       calibrationReplyLabel.textContent = 'YOUR ANSWER';
-      calibrationReply.placeholder = 'Add the missing detail…';
-      calibrationSecondary.textContent = 'LET MACHINE DECIDE';
+      calibrationReply.placeholder = 'A few words is plenty…';
+      calibrationSecondary.textContent = 'YOU DECIDE';
       calibrationContinue.textContent = 'ANSWER';
       leverLabel.textContent = 'PULL TO ANSWER';
-      lever.setAttribute('aria-label', 'Pull lever to answer the calibration question');
-      screen.textContent = '02 — ONE DETAIL NEEDED BEFORE DISPENSING.';
+      lever.setAttribute('aria-label', 'Pull lever to answer the machine\'s question');
+      screen.textContent = '02 — ONE QUESTION BEFORE I PACK IT.';
       calibrationReply.focus();
       return;
     }
 
     conversationPhase = 'confirmation';
-    calibrationStep.textContent = 'CONFIRM ORDER';
-    calibrationText.textContent = data.understanding;
+    confirmationStage = data.stage || 'plan';
     renderOptions([]);
     calibrationReply.closest('label').hidden = !data.canRevise;
-    calibrationReplyLabel.textContent = 'CORRECTION — OPTIONAL';
-    calibrationReply.placeholder = 'Type a correction, or leave blank to confirm…';
     calibrationSecondary.textContent = 'START OVER';
-    calibrationContinue.textContent = 'CONFIRM & DISPENSE';
-    leverLabel.textContent = 'CONFIRM & DISPENSE';
-    lever.setAttribute('aria-label', 'Pull lever to confirm and dispense');
-    screen.textContent = '03 — CHECK THE ORDER. CONFIRM OR CORRECT.';
+
+    if (confirmationStage === 'draft') {
+      const draft = data.draft || {};
+      calibrationStep.textContent = 'PACKED · TAKE IT?';
+      calibrationText.textContent = '';
+      draftTitle.textContent = draft.title || '';
+      draftBody.textContent = draft.message || '';
+      draftBox.hidden = false;
+      calibrationReplyLabel.textContent = data.canRevise
+        ? `SEND IT BACK? SAY WHY — OPTIONAL (${data.feedbackRoundsLeft} LEFT)`
+        : 'NO MORE REPACKS';
+      calibrationReply.placeholder = 'Too vague? Too long? Tell me…';
+      calibrationContinue.textContent = 'TAKE IT';
+      leverLabel.textContent = 'DISPENSE';
+      lever.setAttribute('aria-label', 'Pull lever to dispense this object');
+      screen.textContent = '03 — PACKED. TAKE IT OR SEND IT BACK.';
+    } else {
+      calibrationStep.textContent = 'ORDER SLIP';
+      const lines = [`YOU: ${data.originalProductLabel}`];
+      if (data.productChanged) lines.push(`ME: ${data.productLabel}${data.why ? ` — ${data.why}` : ''}`);
+      lines.push(data.understanding);
+      calibrationText.textContent = lines.join('\n');
+      keepButton.textContent = `KEEP ${data.originalProductLabel}`;
+      keepButton.hidden = !data.productChanged;
+      calibrationReplyLabel.textContent = 'CHANGE THE ORDER — OPTIONAL';
+      calibrationReply.placeholder = 'Not quite? Say what you meant…';
+      calibrationContinue.textContent = data.productChanged ? `TAKE ${data.productLabel}` : 'LOOKS RIGHT';
+      leverLabel.textContent = 'CONFIRM ORDER';
+      lever.setAttribute('aria-label', 'Pull lever to confirm the order');
+      screen.textContent = '03 — CHECK THE SLIP. RIGHT?';
+    }
     if (data.canRevise) calibrationReply.focus();
     else lever.focus();
   }
@@ -369,9 +418,10 @@
     working = true;
     lever.disabled = true;
     machine.classList.add('thinking');
-    screen.textContent = 'CALIBRATING…';
+    screen.textContent = 'CHECKING THE SHELF…';
     tinySound(120, .09);
     const started = Date.now();
+    let keepWorking = false;
 
     try {
       const response = await fetch('/api/vending/turn', {
@@ -380,8 +430,14 @@
         body: JSON.stringify(payload),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'The calibration mechanism jammed.');
-      machine.classList.remove('thinking');
+      if (!response.ok) {
+        const message = data.error
+          || ([408, 504].includes(response.status)
+            ? 'The model took too long to respond. Pull again.'
+            : 'The calibration mechanism jammed. Pull again.');
+        throw new Error(message);
+      }
+      if (data.type !== 'working') machine.classList.remove('thinking');
 
       if (data.type === 'artifact') {
         conversationPhase = 'complete';
@@ -389,11 +445,17 @@
         machine.classList.add('working');
         await wait(Math.max(0, 1900 - (Date.now() - started)));
         lastArtifact = data;
-        screen.textContent = data.privacyRecall ? 'PRIVACY SENSOR — BATCH SAFELY RECALLED.' : '04 — OBJECT READY. LIFT THE COLLECTION DOOR.';
+        screen.textContent = '04 — OBJECT READY. LIFT THE COLLECTION DOOR.';
         renderArtifact(data);
         tinySound(420, .12);
         await wait(250);
         openArtifact();
+      } else if (data.type === 'working') {
+        stateToken = data.stateToken || stateToken;
+        renderProgress(data.progress);
+        screen.textContent = 'PACKING…';
+        machine.classList.add('thinking');
+        keepWorking = true;
       } else if (data.type === 'clarification' || data.type === 'confirmation') {
         await wait(Math.max(0, 500 - (Date.now() - started)));
         renderConversationTurn(data);
@@ -402,15 +464,19 @@
         throw new Error('The calibration mechanism returned an unknown ticket.');
       }
     } catch (error) {
-      screen.textContent = `JAM 05 — ${error.message}`;
-      showToast(error.message.toUpperCase());
+      const message = /failed to fetch|load failed|networkerror/i.test(String(error.message || ''))
+        ? 'Network request failed. Pull again.'
+        : error.message;
+      screen.textContent = `JAM 05 — ${message}`;
+      showToast(message.toUpperCase());
       tinySound(82, .18);
     } finally {
       working = false;
       lever.disabled = false;
-      machine.classList.remove('thinking');
+      if (!keepWorking) machine.classList.remove('thinking');
       setTimeout(() => machine.classList.remove('working'), 450);
     }
+    if (keepWorking) await sendTurn({ stateToken, action: 'continue' });
   }
 
   async function advanceConversation() {
@@ -442,7 +508,8 @@
 
     if (conversationPhase === 'confirmation') {
       const correction = calibrationReply.value.trim();
-      await sendTurn(correction
+      const canRevise = !calibrationReply.closest('label').hidden;
+      await sendTurn(correction && canRevise
         ? { stateToken, action: 'revise', answer: correction }
         : { stateToken, action: 'dispense' });
     }
@@ -465,6 +532,9 @@
       resetCalibration();
       input.focus();
     }
+  });
+  keepButton.addEventListener('click', () => {
+    if (conversationPhase === 'confirmation') sendTurn({ stateToken, action: 'keep' });
   });
   document.querySelector('#calibrationReset').addEventListener('click', () => {
     resetCalibration();
@@ -518,13 +588,13 @@
 
   document.querySelector('#copyButton').addEventListener('click', async () => {
     if (!lastArtifact) return;
-    await navigator.clipboard.writeText(`${lastArtifact.title}\n\n${lastArtifact.message}\n\n${lastArtifact.productLabel} · ${lastArtifact.serial}`);
+    await navigator.clipboard.writeText(`“${lastArtifact.title}”\n\n${lastArtifact.message}\n\n— ZVM-01 · ${lastArtifact.productLabel} · ${lastArtifact.serial}`);
     showToast('OBJECT COPIED');
   });
 
   document.querySelector('#saveButton').addEventListener('click', () => {
     if (!lastArtifact) return;
-    const text = `${lastArtifact.title}\n\n${lastArtifact.message}\n\n${lastArtifact.productLabel} · ${lastArtifact.serial}\nProfile: ${lastArtifact.profileVersion}`;
+    const text = `“${lastArtifact.title}”\n\n${lastArtifact.message}\n\n— ZVM-01 · ${lastArtifact.productLabel} · ${lastArtifact.serial}\nProfile: ${lastArtifact.profileVersion}`;
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     const link = document.createElement('a');
     link.href = url;

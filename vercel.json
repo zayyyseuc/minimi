@@ -1,14 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "npm run build:vending",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/vending/dispense.js": {
-      "maxDuration": 30
-    },
     "api/vending/turn.js": {
-      "maxDuration": 30
+      "maxDuration": 60
     }
   }
 }

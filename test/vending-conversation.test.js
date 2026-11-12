@@ -1,7 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { validStateToken, statusPayload } = require('../src/vending/public-api');
+const { isModelTimeout, publicModelError, validStateToken, statusPayload } = require('../src/vending/public-api');
+const { MODEL_TIMEOUT_MS, CALIBRATION_TIMEOUT_MS } = require('../src/vending/model-client');
 const { issueStateToken, readStateToken, validReply, startConversation } = require('../src/vending/conversation');
 
 test('calibration replies and state tokens are bounded', () => {
@@ -47,6 +48,16 @@ test('extraction attempts bypass calibration and never require a model call', as
 test('public status advertises the bounded confirmation flow', () => {
   const status = statusPayload();
   assert.equal(status.conversation.enabled, true);
-  assert.equal(status.conversation.maxClarifications, 1);
+  assert.equal(status.conversation.maxClarifications, 2);
   assert.equal(status.conversation.maxReplyLength, 600);
+});
+
+test('model timeouts leave room for a structured Vercel response', () => {
+  assert.equal(CALIBRATION_TIMEOUT_MS, 20_000);
+  assert.equal(MODEL_TIMEOUT_MS, 50_000);
+  assert.equal(isModelTimeout(Object.assign(new Error('Request timed out'), { name: 'APIConnectionTimeoutError' })), true);
+  assert.deepEqual(publicModelError(new Error('Request timeout'), 'fallback'), {
+    status: 504,
+    message: 'The model took too long to respond. Pull again.',
+  });
 });

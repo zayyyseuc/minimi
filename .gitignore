@@ -8,12 +8,10 @@ tmp/
 .env.*
 !.env.example
 
-# Generated cache and indexes (auto-regenerated on demand)
+# Local/private artifacts from earlier project versions
 cache/
-mom-index/
-
-# Personal data (conversation history, private)
 data/
+persona.md
 
 # macOS system files
 .DS_Store
@@ -22,6 +20,4 @@ data/
 # Claude Code local settings
 .claude/
 
-# Personal persona (contains private context — copy persona.example.md to create your own)
-persona.md
 .vercel
