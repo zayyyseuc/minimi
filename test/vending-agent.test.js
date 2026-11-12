@@ -187,7 +187,7 @@ test('over-long drafts are sent back to the agent to trim', async () => {
   turn = await continueConversation({ stateToken: turn.stateToken, action: 'dispense' }, deps);
   assert.equal(turn.stage, 'draft');
   const state = readStateToken(turn.stateToken);
-  assert.match(state.steps.find(step => step.a === 'write_draft').o, /Trim it to 85 words/);
+  assert.match(state.steps.find(step => step.a === 'write_draft').o, /Trim the gloss to 70 words/);
 });
 
 test('long questions and plans are rejected so the visitor only reads short text', async () => {

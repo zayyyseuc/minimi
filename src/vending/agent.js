@@ -32,6 +32,7 @@ const LIMITS = {
   maxQuestion: 120,
   maxUnderstanding: 160,
   maxWhy: 100,
+  maxMaxim: 90,
 };
 
 const TOOLS = ['lookup_facts', 'ask_visitor', 'propose_plan', 'write_draft', 'self_review', 'present_draft'];
@@ -130,10 +131,14 @@ TOOLS. Reply with exactly one JSON object per turn: {"thought":"one short senten
 - lookup_facts {"query":"keywords"} or {"ids":["fact-id"]}: read up to 3 approved public facts. Use it before making any claim about Zai or her work.
 - ask_visitor {"question":"one question, under 12 words","options":["0-3 options, 1-3 words each"]}: pause and ask the visitor. Use only when different readings of the thought would give meaningfully different artifacts. Questions left: ${asksLeft}.
 - propose_plan {"understanding":"what you will make for them, one sentence under 15 words","product":"<product id>","why":"under 10 words, only when you switch product"}: pause for the visitor to approve. Required before drafting. Pick the product that best serves the thought. The visitor selected ${state.originalProduct}; keep it unless another is clearly a better fit, and say why.
-- write_draft {"title":"2-5 words","message":"the artifact: 40-85 words, 3 to 5 short sentences, one clear idea, ending with one concrete thing to try or ask","behavioralTrace":["1-3 trait ids"],"factTrace":["0-3 fact ids you looked up and actually used"]}: save a draft. Needs an approved plan.
+- write_draft {"title":"the maxim","message":"the gloss","behavioralTrace":["1-3 trait ids"],"factTrace":["0-3 fact ids you looked up and actually used"]}: save a draft. Needs an approved plan.
 - self_review {"verdict":"ok|revise","issues":["what is weak"]}: critique your own draft honestly against: answers the thought directly, grounded, fits the product, specific rather than generic, one clear idea. Required after every draft. If the draft is sound, say ok and move on. Rewrite only for a real flaw: vague, wrong product, or an unsupported claim.
 - present_draft {}: pause and show the reviewed draft to the visitor. They may accept it or send it back with feedback.
 Keep "thought" under 8 words.
+
+THE ARTIFACT is a maxim with a gloss, like a slip printed by a vending machine.
+- title = the maxim: one declarative sentence a person could pin on a wall. Under 12 words (under 24 characters in Chinese). Concrete and a little surprising, never a slogan, never generic encouragement. It must stand alone and be true to this visitor's thought.
+- message = the gloss: 30-70 words, 2 to 4 short sentences that unpack the maxim and end with one concrete thing to try or ask. Do not repeat the maxim.
 
 TYPICAL ORDER: lookup_facts if Zai or her work is involved, then optionally ask_visitor, then propose_plan, then write_draft, self_review, present_draft. After visitor feedback, revise with write_draft, self_review, present_draft. Skip steps that add nothing.
 
@@ -194,16 +199,16 @@ function shortText(value, max) {
 }
 
 function validateDraft(state, args) {
-  const title = shortText(args.title, 60);
+  const title = shortText(args.title, LIMITS.maxMaxim);
   const message = shortText(args.message, 1200);
   if (!title || !message) {
     return { error: 'Draft rejected: title and message must be non-empty plain text without paths, emails, URLs, [[links]], code fences, or markdown headings. Rewrite it.' };
   }
   if (state.language === 'en' && wordCount(message) > LIMITS.maxWords) {
-    return { error: `Draft rejected: ${wordCount(message)} words. Trim it to 85 words or fewer.` };
+    return { error: `Draft rejected: ${wordCount(message)} words. Trim the gloss to 70 words or fewer.` };
   }
   if (state.language === 'zh' && message.length > LIMITS.maxChars) {
-    return { error: `Draft rejected: ${message.length} characters. Trim it to 160 characters or fewer.` };
+    return { error: `Draft rejected: ${message.length} characters. Trim the gloss to 160 characters or fewer.` };
   }
   const traits = Object.values(getBehavioralProfile().dimensions || {}).flat();
   const behavioralTrace = (Array.isArray(args.behavioralTrace) ? args.behavioralTrace : [])

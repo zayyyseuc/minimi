@@ -588,13 +588,13 @@
 
   document.querySelector('#copyButton').addEventListener('click', async () => {
     if (!lastArtifact) return;
-    await navigator.clipboard.writeText(`${lastArtifact.title}\n\n${lastArtifact.message}\n\n${lastArtifact.productLabel} · ${lastArtifact.serial}`);
+    await navigator.clipboard.writeText(`“${lastArtifact.title}”\n\n${lastArtifact.message}\n\n— ZVM-01 · ${lastArtifact.productLabel} · ${lastArtifact.serial}`);
     showToast('OBJECT COPIED');
   });
 
   document.querySelector('#saveButton').addEventListener('click', () => {
     if (!lastArtifact) return;
-    const text = `${lastArtifact.title}\n\n${lastArtifact.message}\n\n${lastArtifact.productLabel} · ${lastArtifact.serial}\nProfile: ${lastArtifact.profileVersion}`;
+    const text = `“${lastArtifact.title}”\n\n${lastArtifact.message}\n\n— ZVM-01 · ${lastArtifact.productLabel} · ${lastArtifact.serial}\nProfile: ${lastArtifact.profileVersion}`;
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     const link = document.createElement('a');
     link.href = url;
