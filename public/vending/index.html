@@ -57,6 +57,34 @@
               </button>
             </div>
           </div>
+          <div class="dialog-bay">
+            <section id="calibrationPanel" class="calibration-panel" aria-live="polite" hidden>
+              <div class="calibration-head">
+                <span id="calibrationStep">ORDER SLIP</span>
+                <ol id="agentLog" class="agent-log" aria-label="Order progress" hidden></ol>
+                <button id="calibrationReset" type="button">START OVER</button>
+              </div>
+              <div class="calibration-main">
+                <p id="calibrationText"></p>
+                <div id="calibrationDraft" class="calibration-draft" hidden>
+                  <b id="calibrationDraftTitle"></b>
+                  <span id="calibrationDraftBody"></span>
+                </div>
+                <div id="calibrationOptions" class="calibration-options"></div>
+              </div>
+              <div class="calibration-side">
+                <label class="calibration-reply">
+                  <span id="calibrationReplyLabel">YOUR ANSWER</span>
+                  <textarea id="calibrationReply" maxlength="600" rows="2" placeholder="Add the missing detail…"></textarea>
+                </label>
+                <div class="calibration-actions">
+                  <button id="calibrationSecondary" type="button">YOU DECIDE</button>
+                  <button id="calibrationKeep" class="calibration-keep" type="button" hidden>KEEP MY ORDER</button>
+                  <button id="calibrationContinue" type="button">ANSWER</button>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
 
         <div class="console">
@@ -71,30 +99,6 @@
             <textarea id="thoughtInput" maxlength="1200" rows="5" placeholder="Type here…"></textarea>
             <span class="slot-mouth" aria-hidden="true"><i></i></span>
           </label>
-
-          <section id="calibrationPanel" class="calibration-panel" aria-live="polite" hidden>
-            <div class="calibration-head">
-              <span id="calibrationStep">ORDER SLIP</span>
-              <button id="calibrationReset" type="button">START OVER</button>
-            </div>
-            <ol id="agentLog" class="agent-log" aria-label="Order progress" hidden></ol>
-            <p id="calibrationText"></p>
-            <div id="calibrationDraft" class="calibration-draft" hidden>
-              <b id="calibrationDraftTitle"></b>
-              <span id="calibrationDraftBody"></span>
-            </div>
-            <div id="calibrationOptions" class="calibration-options"></div>
-            <label class="calibration-reply">
-              <span id="calibrationReplyLabel">YOUR ANSWER</span>
-              <textarea id="calibrationReply" maxlength="600" rows="3" placeholder="Add the missing detail…"></textarea>
-            </label>
-            <button id="calibrationKeep" class="calibration-keep" type="button" hidden>KEEP MY ORDER</button>
-            <div class="calibration-actions">
-              <button id="calibrationSecondary" type="button">YOU DECIDE</button>
-              <button id="calibrationContinue" type="button">ANSWER</button>
-            </div>
-          </section>
-
           <div class="controls">
             <button id="surpriseButton" class="surprise-button" type="button">
               <span>?</span> SURPRISE ME

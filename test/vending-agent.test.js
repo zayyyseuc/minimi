@@ -180,14 +180,14 @@ test('visitor text reaches the model only as quoted data', async () => {
 });
 
 test('over-long drafts are sent back to the agent to trim', async () => {
-  const long = draft({ message: 'word '.repeat(120) });
+  const long = draft({ message: 'word '.repeat(90) });
   const model = script(plan(), long, draft(), review(), present());
   const deps = { complete: model.complete };
   let turn = await startConversation({ input: INPUT, product: 'reality_check' }, deps);
   turn = await continueConversation({ stateToken: turn.stateToken, action: 'dispense' }, deps);
   assert.equal(turn.stage, 'draft');
   const state = readStateToken(turn.stateToken);
-  assert.match(state.steps.find(step => step.a === 'write_draft').o, /Trim the gloss to 70 words/);
+  assert.match(state.steps.find(step => step.a === 'write_draft').o, /Trim the gloss to 55 words/);
 });
 
 test('long questions and plans are rejected so the visitor only reads short text', async () => {
@@ -256,7 +256,7 @@ test('the signed ticket cannot be edited to forge a draft', async () => {
 
 test('a maximal session still fits inside the ticket size limit', async () => {
   const filler = 'x'.repeat(10);
-  const longDraft = n => draft({ title: `Draft ${n}`, message: `${'word '.repeat(80)}${filler}` });
+  const longDraft = n => draft({ title: `Draft ${n}`, message: `${'word '.repeat(60)}${filler}` });
   const cycle = n => [longDraft(n), review('revise', ['weak', 'weak']), longDraft(n + 1), review('revise', ['weak']), longDraft(n + 2), review('ok'), present()];
   const model = script(
     act('lookup_facts', { query: 'cubik' }), act('lookup_facts', { query: 'pet' }), act('lookup_facts', { query: 'urban' }),

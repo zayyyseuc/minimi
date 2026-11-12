@@ -25,8 +25,8 @@ const LIMITS = {
   requestBudgetMs: 44_000, // leaves room inside the 60 s function limit
   stepTimeoutMs: 18_000,
   minStepMs: 6_000,
-  maxWords: 100,
-  maxChars: 240,           // Chinese drafts
+  maxWords: 70,
+  maxChars: 200,           // Chinese drafts
   maxQuestion: 120,
   maxUnderstanding: 160,
   maxWhy: 100,
@@ -136,7 +136,7 @@ Keep "thought" under 8 words.
 
 THE ARTIFACT is a maxim with a gloss, like a slip printed by a vending machine.
 - title = the maxim: one declarative sentence a person could pin on a wall. Under 12 words (under 24 characters in Chinese). Concrete and a little surprising, never a slogan, never generic encouragement. It must stand alone and be true to this visitor's thought.
-- message = the gloss: 30-70 words, 2 to 4 short sentences that unpack the maxim and end with one concrete thing to try or ask. Do not repeat the maxim.
+- message = the gloss: 25-55 words (Chinese: under 120 characters), 2 to 3 short sentences that unpack the maxim and end with one concrete thing to try or ask. Do not repeat the maxim.
 
 TYPICAL ORDER: lookup_facts if Zai or her work is involved, then optionally ask_visitor, then propose_plan, then write_draft, self_review, present_draft. After visitor feedback, revise with write_draft, self_review, present_draft. Skip steps that add nothing.
 
@@ -203,10 +203,10 @@ function validateDraft(state, args) {
     return { error: 'Draft rejected: title and message must be non-empty plain text without paths, emails, URLs, [[links]], code fences, or markdown headings. Rewrite it.' };
   }
   if (state.language === 'en' && wordCount(message) > LIMITS.maxWords) {
-    return { error: `Draft rejected: ${wordCount(message)} words. Trim the gloss to 70 words or fewer.` };
+    return { error: `Draft rejected: ${wordCount(message)} words. Trim the gloss to 55 words or fewer.` };
   }
   if (state.language === 'zh' && message.length > LIMITS.maxChars) {
-    return { error: `Draft rejected: ${message.length} characters. Trim the gloss to 160 characters or fewer.` };
+    return { error: `Draft rejected: ${message.length} characters. Trim the gloss to 120 characters or fewer.` };
   }
   const traits = Object.values(getBehavioralProfile().dimensions || {}).flat();
   const behavioralTrace = (Array.isArray(args.behavioralTrace) ? args.behavioralTrace : [])
