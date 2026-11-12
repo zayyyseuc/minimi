@@ -5,7 +5,7 @@ const path = require('path');
 
 const { cleanText, looksLikeExtractionAttempt } = require('../src/vending/privacy');
 const { validInput, validStateToken, statusPayload } = require('../src/vending/public-api');
-const { primaryLanguage, isPersonalHistoryQuery, isProjectJudgmentQuery, projectJudgmentGuidance, isVisualStyleQuery, visualStyleGuidance, personalBoundaryArtifact } = require('../src/vending/generator');
+const { primaryLanguage } = require('../src/vending/products');
 const { issueStateToken, readStateToken, validReply, startConversation } = require('../src/vending/conversation');
 const publicProfile = require('../config/public-zai-profile.json');
 
@@ -68,41 +68,8 @@ test('response language follows the visitor input', () => {
   assert.equal(primaryLanguage('What project do you find interesting?'), 'en');
 });
 
-test('personal-history questions are routed to the approved-facts boundary', () => {
-  assert.equal(isPersonalHistoryQuery('你觉得做过的特别有意思的项目是什么'), true);
-  assert.equal(isPersonalHistoryQuery('What is your favorite project that you built?'), true);
-  assert.equal(isPersonalHistoryQuery('这个项目为什么有意思？'), false);
-  const artifact = personalBoundaryArtifact('reality_check', 'zh');
-  assert.match(artifact.message, /简历、作品集和公开网站/);
-  assert.equal(artifact.behavioralTrace[0].id, 'privacy-boundary');
-});
-
-test('project preference questions trigger decisive editorial judgment', () => {
-  assert.equal(isProjectJudgmentQuery('Tell me one project that you like the least'), true);
-  assert.equal(isProjectJudgmentQuery('Which is your strongest work?'), true);
-  assert.equal(isProjectJudgmentQuery('你最不喜欢哪个项目？'), true);
-  assert.equal(isProjectJudgmentQuery('What projects have you built?'), false);
-
-  const guidance = projectJudgmentGuidance('en');
-  assert.match(guidance, /first sentence must name exactly one published project/);
-  assert.match(guidance, /Do not open with a disclaimer/);
-  assert.match(guidance, /Do not substitute documentation volume/);
-});
-
-test('visual-style questions trigger evidence-based synthesis', () => {
-  assert.equal(isVisualStyleQuery("What is Zai's aesthetic?"), true);
-  assert.equal(isVisualStyleQuery('Describe her visual language.'), true);
-  assert.equal(isVisualStyleQuery('你的作品集视觉风格是什么？'), true);
-  assert.equal(isVisualStyleQuery('What is the strongest project?'), false);
-
-  const guidance = visualStyleGuidance('en');
-  assert.match(guidance, /Answer directly/);
-  assert.match(guidance, /palette, typography and hierarchy, composition, imagery, diagrams, and technical evidence/);
-  assert.match(guidance, /Do not reduce visual style to abstract values/);
-});
-
-test('public generator has no retrieval or index dependency', () => {
-  const generator = fs.readFileSync(path.join(__dirname, '../src/vending/generator.js'), 'utf8');
+test('the agent has no retrieval or index dependency', () => {
+  const generator = fs.readFileSync(path.join(__dirname, '../src/vending/agent.js'), 'utf8');
   assert.equal(/require\(['"]\.\.\/searcher/.test(generator), false);
   assert.equal(/require\(['"]\.\.\/indexer/.test(generator), false);
   assert.equal(/LocalIndex|queryItems|VAULT_PATH/.test(generator), false);

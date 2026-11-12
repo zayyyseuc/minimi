@@ -17,19 +17,15 @@ flowchart LR
     subgraph Vercel
         UI --> Status[GET status]
         UI --> Turn[POST turn]
-        UI --> Dispense[POST dispense, one-shot legacy]
         Turn --> PublicAPI[public-api.js]
         PublicAPI --> Conversation[conversation.js: signed tickets]
         Conversation --> Agent[agent.js: tool loop]
         Agent -->|lookup_facts| Profile[(public-zai-profile.json)]
         Privacy[privacy.js] --> Conversation
         Privacy --> Agent
-        Dispense --> Generator[generator.js]
-        Profile --> Generator
     end
 
     Agent <-->|choose next tool| SiliconFlow[SiliconFlow chat completion]
-    Generator --> SiliconFlow
     Agent -->|question, plan, draft| UI
     UI -->|answer, approve, feedback| Turn
 ```
@@ -76,11 +72,10 @@ The browser source lives in `public/vending/`. `scripts/build-vending.js` create
 - `dist/index.html` for the deployment root;
 - `dist/vending/` for the canonical asset paths used by the interface.
 
-The three Vercel entry points are intentionally thin:
+The two Vercel entry points are intentionally thin:
 
 - `api/vending/status.js`
 - `api/vending/turn.js`
-- `api/vending/dispense.js`
 
 They delegate to `src/vending/public-api.js`, which imports only deploy-safe modules. The production path does not import any local-development server code.
 
@@ -93,7 +88,7 @@ résumé ───────────┐
 portfolio PDF ────┼─> manual review ──> public-zai-profile.json
 portfolio website┘      and redaction                 │
                                                         ▼
-visitor input ─────────────────────────────────> generator ──> model
+visitor input ─────────────────────────────────> agent ──> model
                                                         │
                                                         ▼
                                           validated artifact + traces

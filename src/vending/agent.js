@@ -1,4 +1,4 @@
-const { PRODUCTS, primaryLanguage, serialFor } = require('./generator');
+const { AGENT_VERSION, PRODUCTS, primaryLanguage, serialFor } = require('./products');
 const { cleanText } = require('./privacy');
 const { getBehavioralProfile, getPublicFacts, getPublicSources, getPublicBasis } = require('./public-profile');
 const { MODEL, modelClient } = require('./model-client');
@@ -13,8 +13,6 @@ const { MODEL, modelClient } = require('./model-client');
  * The server keeps no session. The full loop state (`state`) is carried in the
  * signed ticket, so a paused loop resumes on the next request.
  */
-
-const AGENT_VERSION = 'vending-agent-v1';
 
 const LIMITS = {
   maxAsks: 2,              // questions the agent may put to the visitor

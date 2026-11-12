@@ -30,8 +30,7 @@ The production deployment contains only:
 1. Static assets built from `public/vending/`.
 2. `GET /api/vending/status`.
 3. `POST /api/vending/turn` for the agent conversation.
-4. `POST /api/vending/dispense` as the compatible one-shot endpoint. It does not run the agent.
-5. The agent, conversation, generation, privacy, and approved-profile modules under `src/vending/`.
+4. The agent, conversation, product, privacy, and approved-profile modules under `src/vending/`.
 
 See [docs/vending-architecture.md](docs/vending-architecture.md) for the agent design, trust boundary and request lifecycle, and [docs/vending-evaluation.md](docs/vending-evaluation.md) for how it is tested.
 
@@ -120,28 +119,9 @@ Updating the résumé, portfolio, or website does not automatically change the a
 
 Returns model readiness, profile versions, prompt version, public fact count, and available products. It remains available without a model key so deployment health can be inspected safely.
 
-### `POST /api/vending/dispense`
-
-Request:
-
-```json
-{
-  "input": "What if a city measured quietness instead of traffic?",
-  "product": "unexpected_connection"
-}
-```
-
-`product` must be one of:
-
-- `reality_check`
-- `unexpected_connection`
-- `wild_card`
-
-The input must contain between 2 and 1,200 characters. Successful responses include the artifact, version identifiers, and validated behavioral and fact traces.
-
 ### `POST /api/vending/turn`
 
-Starts the agent with the same `input` and `product` fields. The response is one of:
+Starts the agent with `input` (2 to 1,200 characters) and `product` (`reality_check`, `unexpected_connection` or `wild_card`). The response is one of:
 
 - `clarification` — a question the agent chose to ask, with optional choices (human checkpoint);
 - `confirmation` with `stage: "plan"` — the agent's reading of the thought and the product it recommends, which may differ from the visitor's choice (human checkpoint);
@@ -162,7 +142,7 @@ Tickets expire after 20 minutes. They carry the whole agent state, are signed, a
 
 ## Deployment
 
-Vercel uses `vercel.json` to run `npm run build`, publishes `dist/`, and exposes the three functions in `api/vending/`.
+Vercel uses `vercel.json` to run `npm run build`, publishes `dist/`, and exposes the two functions in `api/vending/`.
 
 Before deploying:
 
@@ -193,7 +173,7 @@ Set `SILICONFLOW_API_KEY` in the Vercel project for the required environments. `
 ├── src/vending/
 │   ├── agent.js                 # Tool-using agent loop, budgets, human pauses
 │   ├── conversation.js          # Signed tickets and the visitor-facing turn protocol
-│   ├── generator.js             # Product definitions and the one-shot /dispense generator
+│   ├── products.js              # Product definitions, language detection, sealed-hatch artifact
 │   ├── model-client.js          # Shared SiliconFlow client
 │   ├── privacy.js               # Extraction detection and text sanitization
 │   ├── public-api.js            # HTTP contracts and rate limiting

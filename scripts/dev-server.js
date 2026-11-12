@@ -2,7 +2,6 @@ const fs = require('fs');
 const http = require('http');
 const path = require('path');
 
-const dispenseHandler = require('../api/vending/dispense');
 const statusHandler = require('../api/vending/status');
 const turnHandler = require('../api/vending/turn');
 
@@ -88,10 +87,6 @@ const server = http.createServer(async (req, rawRes) => {
     if (pathname === '/api/vending/turn') {
       req.body = await readJsonBody(req);
       return turnHandler(req, res);
-    }
-    if (pathname === '/api/vending/dispense') {
-      req.body = await readJsonBody(req);
-      return dispenseHandler(req, res);
     }
     if (pathname === '/' || pathname === '/vending' || pathname.startsWith('/vending/')) {
       return serveStatic(pathname, res);

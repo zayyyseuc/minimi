@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-const { PRODUCTS, generateProduct } = require('./generator');
+const { PRODUCTS, sealedArtifact } = require('./products');
 const { looksLikeExtractionAttempt } = require('./privacy');
 const { LIMITS, newState, runAgent, resume, agentLog, progress, buildArtifact } = require('./agent');
 
@@ -114,14 +114,13 @@ function present({ state, pause }) {
   };
 }
 
-function refusal(state, text) {
-  return generateProduct({ input: state.input, product: state.product, confirmedContext: { visitorText: text } })
-    .then(artifact => ({ type: 'artifact', ...artifact }));
+function refusal(state) {
+  return { type: 'artifact', ...sealedArtifact(state.product) };
 }
 
 async function startConversation({ input, product }, deps = {}) {
   if (looksLikeExtractionAttempt(input)) {
-    return { type: 'artifact', ...(await generateProduct({ input, product })) };
+    return { type: 'artifact', ...sealedArtifact(product) };
   }
   return present(await runAgent(newState({ input, product }), deps));
 }
@@ -150,7 +149,7 @@ async function continueConversation({ stateToken, action, answer = '' }, deps = 
     if (!['answer', 'skip'].includes(action)) throw conversationError('Choose an answer or let the machine decide.');
     if (action === 'answer') {
       needsText();
-      if (looksLikeExtractionAttempt(text)) return refusal(state, text);
+      if (looksLikeExtractionAttempt(text)) return refusal(state);
     }
     resume(state, action === 'skip' ? { type: 'skip' } : { type: 'answer', text });
     return present(await runAgent(state, deps));
@@ -160,7 +159,7 @@ async function continueConversation({ stateToken, action, answer = '' }, deps = 
     if (action === 'revise') {
       if (state.planRedirects >= LIMITS.maxPlanRedirects) throw conversationError('This plan has been corrected enough. Approve it or start again.');
       needsText();
-      if (looksLikeExtractionAttempt(text)) return refusal(state, text);
+      if (looksLikeExtractionAttempt(text)) return refusal(state);
       resume(state, { type: 'redirect', text });
       return present(await runAgent(state, deps));
     }
@@ -173,7 +172,7 @@ async function continueConversation({ stateToken, action, answer = '' }, deps = 
     if (action === 'revise') {
       if (state.feedbackRounds >= LIMITS.maxFeedbackRounds) throw conversationError('The draft has been revised enough. Accept it or start again.');
       needsText();
-      if (looksLikeExtractionAttempt(text)) return refusal(state, text);
+      if (looksLikeExtractionAttempt(text)) return refusal(state);
       resume(state, { type: 'feedback', text });
       return present(await runAgent(state, deps));
     }

@@ -4,9 +4,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/vending/dispense.js": {
-      "maxDuration": 60
-    },
     "api/vending/turn.js": {
       "maxDuration": 60
     }

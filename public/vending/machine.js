@@ -445,7 +445,7 @@
         machine.classList.add('working');
         await wait(Math.max(0, 1900 - (Date.now() - started)));
         lastArtifact = data;
-        screen.textContent = data.privacyRecall ? 'PRIVACY SENSOR — BATCH SAFELY RECALLED.' : '04 — OBJECT READY. LIFT THE COLLECTION DOOR.';
+        screen.textContent = '04 — OBJECT READY. LIFT THE COLLECTION DOOR.';
         renderArtifact(data);
         tinySound(420, .12);
         await wait(250);

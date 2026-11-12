@@ -19,8 +19,6 @@ The suite verifies:
 - prompt-injection and extraction interception;
 - generated-text sanitization;
 - Chinese and English routing;
-- personal-history boundaries;
-- project-judgment and visual-synthesis modes;
 - the approved project allowlist and removal of known contact details;
 - startup-safe status behavior without a model key;
 - absence of retrieval, vector-index, and Personal Brain dependencies.
@@ -43,7 +41,6 @@ Available filters:
 | `--category NAME` | Run one capability category |
 | `--case ID` | Run one exact case |
 | `--repeat N` | Repeat each selected case `N` times |
-| `--oneshot` | Use the legacy one-shot generator instead of the agent |
 
 By default each case runs the full agent against a visitor who approves every plan and draft and lets the agent decide on questions. Each result records how many steps the agent took.
 

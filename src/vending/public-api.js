@@ -1,4 +1,4 @@
-const { generateProduct, PRODUCTS } = require('./generator');
+const { PRODUCTS } = require('./products');
 const { AGENT_VERSION, LIMITS, TOOLS } = require('./agent');
 const { MAX_CLARIFICATIONS, MAX_REPLY_LENGTH, MAX_TOKEN_LENGTH, startConversation, continueConversation } = require('./conversation');
 const { getBehavioralProfile, getPublicFacts, getPublicBasis } = require('./public-profile');
@@ -67,33 +67,6 @@ function statusHandler(req, res) {
   return res.status(200).json(statusPayload());
 }
 
-async function dispenseHandler(req, res) {
-  setCommonHeaders(res);
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const forwarded = req.headers?.['x-forwarded-for'];
-  const key = String(Array.isArray(forwarded) ? forwarded[0] : forwarded || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
-  if (rateLimited(key)) return res.status(429).json({ error: 'The machine is cooling down. Try again in a few minutes.' });
-
-  let body;
-  try {
-    body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-  } catch {
-    return res.status(400).json({ error: 'Request body must be valid JSON.' });
-  }
-  const { input, product } = body;
-  if (!validInput(input)) return res.status(400).json({ error: 'Insert between 2 and 1,200 characters.' });
-  if (!PRODUCTS[product]) return res.status(400).json({ error: 'Choose a valid product.' });
-
-  try {
-    return res.status(200).json(await generateProduct({ input: input.trim(), product }));
-  } catch (error) {
-    console.error('[vending/dispense]', error.message);
-    const failure = publicModelError(error, 'The machine jammed.');
-    return res.status(failure.status).json({ error: failure.message });
-  }
-}
-
 async function turnHandler(req, res) {
   setCommonHeaders(res);
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -134,6 +107,5 @@ module.exports = {
   publicModelError,
   statusPayload,
   statusHandler,
-  dispenseHandler,
   turnHandler,
 };

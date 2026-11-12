@@ -1,13 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const { generateProduct } = require('../src/vending/generator');
 const { startConversation, continueConversation } = require('../src/vending/conversation');
 
 const cases = JSON.parse(fs.readFileSync(path.join(__dirname, '../test/vending-evaluation-cases.json'), 'utf8'));
 const args = process.argv.slice(2);
-
-const oneShot = args.includes('--oneshot');
 
 /** Drives the real agent with a visitor who approves every checkpoint. */
 async function runAgentSession(testCase) {
@@ -73,9 +70,7 @@ async function main() {
   const results = [];
   for (const testCase of selected) {
     for (let run = 1; run <= repeat; run += 1) {
-      const artifact = oneShot
-        ? await generateProduct({ input: testCase.input, product: testCase.product })
-        : await runAgentSession(testCase);
+      const artifact = await runAgentSession(testCase);
       const checks = validate(testCase, artifact);
       results.push({
         id: testCase.id,
