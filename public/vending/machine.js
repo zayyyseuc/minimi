@@ -334,14 +334,14 @@
     });
   }
 
-  function renderAgentLog(log) {
+  function renderProgress(lamps) {
     agentLogEl.innerHTML = '';
-    const items = Array.isArray(log) ? log : [];
+    const items = Array.isArray(lamps) ? lamps : [];
     agentLogEl.hidden = items.length === 0;
     items.forEach(item => {
       const li = document.createElement('li');
-      li.className = item.kind || 'tool';
-      li.textContent = item.text;
+      li.className = item.state;
+      li.textContent = item.label;
       agentLogEl.appendChild(li);
     });
   }
@@ -354,21 +354,21 @@
     calibrationReply.value = '';
     draftBox.hidden = true;
     keepButton.hidden = true;
-    renderAgentLog(data.agentLog);
+    renderProgress(data.progress);
 
     if (data.type === 'clarification') {
       conversationPhase = 'clarification';
-      calibrationStep.textContent = `AGENT ASKS · ${data.turn || 1} / ${data.maxTurns || 1}`;
+      calibrationStep.textContent = `ONE QUESTION · ${data.turn || 1} / ${data.maxTurns || 1}`;
       calibrationText.textContent = data.question;
       renderOptions(Array.isArray(data.options) ? data.options : []);
       calibrationReply.closest('label').hidden = false;
       calibrationReplyLabel.textContent = 'YOUR ANSWER';
-      calibrationReply.placeholder = 'Add the missing detail…';
-      calibrationSecondary.textContent = 'LET MACHINE DECIDE';
+      calibrationReply.placeholder = 'A few words is plenty…';
+      calibrationSecondary.textContent = 'YOU DECIDE';
       calibrationContinue.textContent = 'ANSWER';
       leverLabel.textContent = 'PULL TO ANSWER';
-      lever.setAttribute('aria-label', 'Pull lever to answer the agent');
-      screen.textContent = '02 — THE AGENT NEEDS ONE DETAIL.';
+      lever.setAttribute('aria-label', 'Pull lever to answer the machine\'s question');
+      screen.textContent = '02 — ONE QUESTION BEFORE I PACK IT.';
       calibrationReply.focus();
       return;
     }
@@ -381,32 +381,33 @@
 
     if (confirmationStage === 'draft') {
       const draft = data.draft || {};
-      calibrationStep.textContent = 'REVIEW THE DRAFT';
+      calibrationStep.textContent = 'PACKED · TAKE IT?';
       calibrationText.textContent = '';
       draftTitle.textContent = draft.title || '';
       draftBody.textContent = draft.message || '';
       draftBox.hidden = false;
       calibrationReplyLabel.textContent = data.canRevise
-        ? `FEEDBACK — OPTIONAL (${data.feedbackRoundsLeft} LEFT)`
-        : 'FEEDBACK LIMIT REACHED';
-      calibrationReply.placeholder = 'What should change? Leave blank to accept…';
-      calibrationContinue.textContent = 'ACCEPT & DISPENSE';
-      leverLabel.textContent = 'ACCEPT & DISPENSE';
-      lever.setAttribute('aria-label', 'Pull lever to accept the draft and dispense');
-      screen.textContent = '03 — YOUR CALL. ACCEPT THE DRAFT OR SEND IT BACK.';
+        ? `SEND IT BACK? SAY WHY — OPTIONAL (${data.feedbackRoundsLeft} LEFT)`
+        : 'NO MORE REPACKS';
+      calibrationReply.placeholder = 'Too vague? Too long? Tell me…';
+      calibrationContinue.textContent = 'TAKE IT';
+      leverLabel.textContent = 'DISPENSE';
+      lever.setAttribute('aria-label', 'Pull lever to dispense this object');
+      screen.textContent = '03 — PACKED. TAKE IT OR SEND IT BACK.';
     } else {
-      calibrationStep.textContent = 'APPROVE THE PLAN';
-      const why = data.why ? `\n${data.why}` : '';
-      calibrationText.textContent = data.productChanged
-        ? `${data.understanding}\nThe agent suggests ${data.productLabel} instead of ${data.originalProductLabel}.${why}`
-        : `${data.understanding}\n${data.productLabel}.${why}`;
+      calibrationStep.textContent = 'ORDER SLIP';
+      const lines = [`YOU: ${data.originalProductLabel}`];
+      if (data.productChanged) lines.push(`ME: ${data.productLabel}${data.why ? ` — ${data.why}` : ''}`);
+      lines.push(data.understanding);
+      calibrationText.textContent = lines.join('\n');
+      keepButton.textContent = `KEEP ${data.originalProductLabel}`;
       keepButton.hidden = !data.productChanged;
-      calibrationReplyLabel.textContent = 'CORRECTION — OPTIONAL';
-      calibrationReply.placeholder = 'Type a correction, or leave blank to approve…';
-      calibrationContinue.textContent = 'APPROVE & DRAFT';
-      leverLabel.textContent = 'APPROVE PLAN';
-      lever.setAttribute('aria-label', 'Pull lever to approve the plan');
-      screen.textContent = '03 — CHECK THE PLAN. APPROVE OR CORRECT.';
+      calibrationReplyLabel.textContent = 'CHANGE THE ORDER — OPTIONAL';
+      calibrationReply.placeholder = 'Not quite? Say what you meant…';
+      calibrationContinue.textContent = data.productChanged ? `TAKE ${data.productLabel}` : 'LOOKS RIGHT';
+      leverLabel.textContent = 'CONFIRM ORDER';
+      lever.setAttribute('aria-label', 'Pull lever to confirm the order');
+      screen.textContent = '03 — CHECK THE SLIP. RIGHT?';
     }
     if (data.canRevise) calibrationReply.focus();
     else lever.focus();
@@ -417,7 +418,7 @@
     working = true;
     lever.disabled = true;
     machine.classList.add('thinking');
-    screen.textContent = 'THE AGENT IS THINKING…';
+    screen.textContent = 'CHECKING THE SHELF…';
     tinySound(120, .09);
     const started = Date.now();
     let keepWorking = false;
@@ -451,8 +452,8 @@
         openArtifact();
       } else if (data.type === 'working') {
         stateToken = data.stateToken || stateToken;
-        renderAgentLog(data.agentLog);
-        screen.textContent = 'THE AGENT IS WORKING…';
+        renderProgress(data.progress);
+        screen.textContent = 'PACKING…';
         machine.classList.add('thinking');
         keepWorking = true;
       } else if (data.type === 'clarification' || data.type === 'confirmation') {

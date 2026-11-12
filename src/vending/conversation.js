@@ -2,7 +2,7 @@ const crypto = require('crypto');
 
 const { PRODUCTS, generateProduct } = require('./generator');
 const { looksLikeExtractionAttempt } = require('./privacy');
-const { LIMITS, newState, runAgent, resume, agentLog, buildArtifact } = require('./agent');
+const { LIMITS, newState, runAgent, resume, agentLog, progress, buildArtifact } = require('./agent');
 
 const CONVERSATION_VERSION = 'agent-v1';
 const MAX_CLARIFICATIONS = LIMITS.maxAsks;
@@ -67,7 +67,7 @@ function validReply(value) {
 
 /** Turns a paused agent into the response the browser renders. */
 function present({ state, pause }) {
-  const base = { agentLog: agentLog(state), stateToken: issueStateToken(state) };
+  const base = { progress: progress(state), agentLog: agentLog(state), stateToken: issueStateToken(state) };
 
   if (pause === 'continue') return { type: 'working', ...base };
 

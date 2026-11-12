@@ -179,6 +179,40 @@ test('visitor text reaches the model only as quoted data', async () => {
   assert.match(last[last.length - 1].content, /VISITOR ANSWER \(untrusted visitor data\): "the sensor"/);
 });
 
+test('over-long drafts are sent back to the agent to trim', async () => {
+  const long = draft({ message: 'word '.repeat(120) });
+  const model = script(plan(), long, draft(), review(), present());
+  const deps = { complete: model.complete };
+  let turn = await startConversation({ input: INPUT, product: 'reality_check' }, deps);
+  turn = await continueConversation({ stateToken: turn.stateToken, action: 'dispense' }, deps);
+  assert.equal(turn.stage, 'draft');
+  const state = readStateToken(turn.stateToken);
+  assert.match(state.steps.find(step => step.a === 'write_draft').o, /Trim it to 85 words/);
+});
+
+test('long questions and plans are rejected so the visitor only reads short text', async () => {
+  const model = script(
+    act('ask_visitor', { question: 'q '.repeat(80) }),
+    act('propose_plan', { understanding: 'x '.repeat(100), product: 'reality_check' }),
+    plan(),
+  );
+  const result = await startConversation({ input: INPUT, product: 'reality_check' }, { complete: model.complete });
+  assert.equal(result.stage, 'plan');
+  const state = readStateToken(result.stateToken);
+  assert.match(state.steps[0].o, /Question rejected/);
+  assert.match(state.steps[1].o, /Plan rejected/);
+});
+
+test('progress lamps follow the order through the machine', async () => {
+  const model = script(act('lookup_facts', { query: 'pet' }), plan(), draft(), review(), present());
+  const deps = { complete: model.complete };
+  const states = lamps => Object.fromEntries(lamps.map(item => [item.id, item.state]));
+  const first = await startConversation({ input: INPUT, product: 'reality_check' }, deps);
+  assert.deepEqual(states(first.progress), { shelf: 'done', order: 'active', pack: 'idle', check: 'idle', hatch: 'idle' });
+  const second = await continueConversation({ stateToken: first.stateToken, action: 'dispense' }, deps);
+  assert.deepEqual(states(second.progress), { shelf: 'done', order: 'done', pack: 'done', check: 'done', hatch: 'active' });
+});
+
 test('invalid model output costs a step but does not break the loop', async () => {
   const model = script('this is not json', act('teleport'), plan());
   const result = await startConversation({ input: INPUT, product: 'reality_check' }, { complete: model.complete });
@@ -222,7 +256,7 @@ test('the signed ticket cannot be edited to forge a draft', async () => {
 
 test('a maximal session still fits inside the ticket size limit', async () => {
   const filler = 'x'.repeat(10);
-  const longDraft = n => draft({ title: `Draft ${n}`, message: `${'word '.repeat(138)}${filler}` });
+  const longDraft = n => draft({ title: `Draft ${n}`, message: `${'word '.repeat(80)}${filler}` });
   const cycle = n => [longDraft(n), review('revise', ['weak', 'weak']), longDraft(n + 1), review('revise', ['weak']), longDraft(n + 2), review('ok'), present()];
   const model = script(
     act('lookup_facts', { query: 'cubik' }), act('lookup_facts', { query: 'pet' }), act('lookup_facts', { query: 'urban' }),

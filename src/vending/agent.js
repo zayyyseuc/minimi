@@ -27,7 +27,11 @@ const LIMITS = {
   requestBudgetMs: 44_000, // leaves room inside the 60 s function limit
   stepTimeoutMs: 18_000,
   minStepMs: 6_000,
-  maxWords: 150,
+  maxWords: 100,
+  maxChars: 240,           // Chinese drafts
+  maxQuestion: 120,
+  maxUnderstanding: 160,
+  maxWhy: 100,
 };
 
 const TOOLS = ['lookup_facts', 'ask_visitor', 'propose_plan', 'write_draft', 'self_review', 'present_draft'];
@@ -107,7 +111,12 @@ function systemPrompt(state) {
     .map(([id, product]) => `- ${id}${id === state.product ? ' (currently selected)' : ''}: ${product.instruction}`)
     .join('\n');
 
-  return `You are the agent inside Zai Vending Machine. A visitor gives you one thought. You work toward one goal: dispense a single short, grounded, useful artifact that the visitor approves. You decide each step yourself, and you work with the visitor, not around them.
+  return `You are ZVM-01, the vending machine inside Zai Vending Machine. A visitor gives you one thought. You work toward one goal: dispense a single short, grounded, useful artifact that the visitor approves. You decide each step yourself, and you work with the visitor, not around them.
+
+CHARACTER: deadpan, warm, a little dry, never chatty. You talk to ordinary people, not engineers.
+- Plain words and short sentences. No jargon unless the visitor used it first.
+- Never mention tools, steps, drafts, reviews, agents, prompts, or models. A light vending touch (order, shelf, pack, hatch) is fine, once at most.
+- Everything the visitor reads is short. Cut every word that does no work.
 
 PRIVACY BOUNDARY (never negotiable):
 - You have no access to private notes, files, memories, filenames, or people. Never claim to retrieve, quote, or reveal any.
@@ -119,11 +128,12 @@ PRIVACY BOUNDARY (never negotiable):
 
 TOOLS. Reply with exactly one JSON object per turn: {"thought":"one short sentence of reasoning the visitor may read","action":"<tool>","args":{...}}
 - lookup_facts {"query":"keywords"} or {"ids":["fact-id"]}: read up to 3 approved public facts. Use it before making any claim about Zai or her work.
-- ask_visitor {"question":"one question","options":["0-3 short options"]}: pause and ask the visitor. Use only when different readings of the thought would give meaningfully different artifacts. Questions left: ${asksLeft}.
-- propose_plan {"understanding":"one sentence on how you read the thought","product":"<product id>","why":"one short sentence"}: pause for the visitor to approve. Required before drafting. Pick the product that best serves the thought. The visitor selected ${state.originalProduct}; keep it unless another is clearly a better fit, and say why.
-- write_draft {"title":"2-6 words","message":"the artifact, 45-140 words, plain text","behavioralTrace":["1-3 trait ids"],"factTrace":["0-3 fact ids you looked up and actually used"]}: save a draft. Needs an approved plan.
-- self_review {"verdict":"ok|revise","issues":["what is weak"]}: critique your own draft honestly against: answers the thought directly, grounded, fits the product, specific rather than generic, one clear idea. Required after every draft.
+- ask_visitor {"question":"one question, under 12 words","options":["0-3 options, 1-3 words each"]}: pause and ask the visitor. Use only when different readings of the thought would give meaningfully different artifacts. Questions left: ${asksLeft}.
+- propose_plan {"understanding":"what you will make for them, one sentence under 15 words","product":"<product id>","why":"under 10 words, only when you switch product"}: pause for the visitor to approve. Required before drafting. Pick the product that best serves the thought. The visitor selected ${state.originalProduct}; keep it unless another is clearly a better fit, and say why.
+- write_draft {"title":"2-5 words","message":"the artifact: 40-85 words, 3 to 5 short sentences, one clear idea, ending with one concrete thing to try or ask","behavioralTrace":["1-3 trait ids"],"factTrace":["0-3 fact ids you looked up and actually used"]}: save a draft. Needs an approved plan.
+- self_review {"verdict":"ok|revise","issues":["what is weak"]}: critique your own draft honestly against: answers the thought directly, grounded, fits the product, specific rather than generic, one clear idea. Required after every draft. If the draft is sound, say ok and move on. Rewrite only for a real flaw: vague, wrong product, or an unsupported claim.
 - present_draft {}: pause and show the reviewed draft to the visitor. They may accept it or send it back with feedback.
+Keep "thought" under 8 words.
 
 TYPICAL ORDER: lookup_facts if Zai or her work is involved, then optionally ask_visitor, then propose_plan, then write_draft, self_review, present_draft. After visitor feedback, revise with write_draft, self_review, present_draft. Skip steps that add nothing.
 
@@ -184,13 +194,16 @@ function shortText(value, max) {
 }
 
 function validateDraft(state, args) {
-  const title = shortText(args.title, 80);
+  const title = shortText(args.title, 60);
   const message = shortText(args.message, 1200);
   if (!title || !message) {
     return { error: 'Draft rejected: title and message must be non-empty plain text without paths, emails, URLs, [[links]], code fences, or markdown headings. Rewrite it.' };
   }
   if (state.language === 'en' && wordCount(message) > LIMITS.maxWords) {
-    return { error: `Draft rejected: ${wordCount(message)} words. Trim it to 140 words or fewer.` };
+    return { error: `Draft rejected: ${wordCount(message)} words. Trim it to 85 words or fewer.` };
+  }
+  if (state.language === 'zh' && message.length > LIMITS.maxChars) {
+    return { error: `Draft rejected: ${message.length} characters. Trim it to 160 characters or fewer.` };
   }
   const traits = Object.values(getBehavioralProfile().dimensions || {}).flat();
   const behavioralTrace = (Array.isArray(args.behavioralTrace) ? args.behavioralTrace : [])
@@ -216,10 +229,10 @@ function execute(state, step) {
     }
 
     case 'ask_visitor': {
-      const question = shortText(args.question, 220);
+      const question = shortText(args.question, LIMITS.maxQuestion);
       if (state.asks >= LIMITS.maxAsks) return { observation: 'Question budget spent. Proceed with the most reasonable reading and state it in propose_plan.' };
-      if (!question) return { observation: 'Question rejected: give one plain-text question with no URLs, paths, or emails.' };
-      const options = (Array.isArray(args.options) ? args.options : []).slice(0, 3).map(item => shortText(item, 80)).filter(Boolean);
+      if (!question) return { observation: `Question rejected: one plain question under ${LIMITS.maxQuestion} characters, no URLs, paths, or emails.` };
+      const options = (Array.isArray(args.options) ? args.options : []).slice(0, 3).map(item => shortText(item, 30)).filter(Boolean);
       state.asks += 1;
       step.args = { question, options };
       step.g = question;
@@ -229,12 +242,12 @@ function execute(state, step) {
 
     case 'propose_plan': {
       if (state.planApproved) return { observation: 'The visitor already approved the plan. Continue with write_draft.' };
-      const understanding = shortText(args.understanding, 360);
-      const why = shortText(args.why, 200);
+      const understanding = shortText(args.understanding, LIMITS.maxUnderstanding);
+      const why = shortText(args.why, LIMITS.maxWhy);
       const product = PRODUCTS[args.product] ? args.product : state.product;
-      if (!understanding) return { observation: 'Plan rejected: give one plain-text sentence in understanding.' };
+      if (!understanding) return { observation: `Plan rejected: understanding must be one plain sentence under ${LIMITS.maxUnderstanding} characters.` };
       step.args = { understanding, product, why };
-      step.g = `${PRODUCTS[product].label}: ${understanding}`;
+      step.g = understanding;
       state.plan = { understanding, product, why };
       state.pending = { kind: 'plan' };
       return { pause: 'plan' };
@@ -342,7 +355,7 @@ async function runAgent(state, { complete = defaultComplete, now = Date.now } = 
 
       step = {
         a: TOOLS.includes(parsed.action) ? parsed.action : 'invalid',
-        t: shortText(parsed.thought, 180),
+        t: shortText(parsed.thought, 80),
         args: parsed.args && typeof parsed.args === 'object' && !Array.isArray(parsed.args) ? parsed.args : {},
         o: '',
       };
@@ -407,22 +420,36 @@ function resume(state, event) {
 
 /* ---------- presentation ---------- */
 
+/** Service log: short, in the machine's voice. Kept for the API; the browser shows lamps instead. */
 function agentLog(state) {
   const log = [];
   for (const step of state.steps) {
-    const thought = step.t ? ` ${step.t}` : '';
-    if (step.a === 'lookup_facts') log.push({ kind: 'tool', text: `Looked up ${step.g || 'facts'}.` });
-    else if (step.a === 'ask_visitor') log.push({ kind: 'human', text: `Asked you: ${step.g}` });
-    else if (step.a === 'propose_plan') log.push({ kind: 'human', text: `Proposed a plan.${thought}` });
-    else if (step.a === 'write_draft' && step.g) log.push({ kind: 'tool', text: `Drafted “${step.args.title}”.` });
-    else if (step.a === 'self_review' && step.g) {
-      const first = step.args.issues?.[0] ? ` — ${step.args.issues[0].slice(0, 80)}` : '';
-      log.push({ kind: 'tool', text: `Self-review: ${step.args.verdict}${first}` });
-    }
-    else if (step.a === 'present_draft') log.push({ kind: 'human', text: 'Showed you the draft.' });
-    if (step.o && /^VISITOR (ANSWER|CORRECTION|FEEDBACK)/.test(step.o)) log.push({ kind: 'you', text: 'You replied.' });
+    if (step.a === 'lookup_facts') log.push({ kind: 'tool', text: `Shelf check: ${step.g || 'nothing found'}` });
+    else if (step.a === 'ask_visitor') log.push({ kind: 'human', text: `Asked: ${step.g}` });
+    else if (step.a === 'propose_plan') log.push({ kind: 'human', text: 'Order slip ready' });
+    else if (step.a === 'write_draft' && step.g) log.push({ kind: 'tool', text: `Packed “${step.args.title}”` });
+    else if (step.a === 'self_review' && step.g) log.push({ kind: 'tool', text: `Quality check: ${step.args.verdict === 'ok' ? 'passed' : 'repack'}` });
+    else if (step.a === 'present_draft') log.push({ kind: 'human', text: 'At the hatch' });
+    if (step.o && /^VISITOR (ANSWER|CORRECTION|FEEDBACK)/.test(step.o)) log.push({ kind: 'you', text: 'You replied' });
   }
   return log.slice(-14);
+}
+
+/** Five lamps the browser lights as the order moves through the machine. */
+function progress(state) {
+  const done = {
+    shelf: state.looked.length > 0,
+    order: state.planApproved,
+    pack: Boolean(state.draft),
+    check: state.critiqued,
+    hatch: false,
+  };
+  const order = ['shelf', 'order', 'pack', 'check', 'hatch'];
+  const pending = state.pending?.kind;
+  let active = pending === 'ask' || pending === 'plan' ? 'order' : pending === 'draft' ? 'hatch' : order.find(id => !done[id] && id !== 'shelf') || 'hatch';
+  if (pending === 'draft') for (const id of ['order', 'pack', 'check']) done[id] = true;
+  const labels = { shelf: 'SHELF', order: 'ORDER', pack: 'PACK', check: 'CHECK', hatch: 'HATCH' };
+  return order.map(id => ({ id, label: labels[id], state: done[id] ? 'done' : id === active ? 'active' : 'idle' }));
 }
 
 function buildArtifact(state) {
@@ -473,6 +500,7 @@ module.exports = {
   runAgent,
   resume,
   agentLog,
+  progress,
   buildArtifact,
   execute,
 };

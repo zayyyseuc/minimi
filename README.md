@@ -35,6 +35,24 @@ The production deployment contains only:
 
 See [docs/vending-architecture.md](docs/vending-architecture.md) for the trust boundary and request lifecycle, or open the [standalone system diagram](docs/system-diagram.html).
 
+## Using the machine
+
+The machine behaves like a small attendant called ZVM-01: deadpan, brief, and plain-spoken. It shows five lamps (SHELF, ORDER, PACK, CHECK, HATCH) while it works and stops at three checkpoints: a question, an order slip, and the packed object.
+
+What you ask decides what it does. These behaviors are the model's judgment, so they are likely, not guaranteed.
+
+| You do this | The machine does this |
+| --- | --- |
+| Ask about a project or Zai's work ("What is the weakest assumption in CUBIK?") | Checks the shelf first and cites the fact it used |
+| Give a vague thought ("Is my idea any good?") | Asks one short question before packing |
+| Pick a product that does not fit the question (Wild Card for "what is weak in X?") | Recommends a better product on the order slip. Accept it, or press KEEP to stay with yours |
+| Write a clear, specific thought | Skips the question and goes straight to the order slip |
+| Type a correction on the order slip ("I meant for a class project") | Re-plans, up to twice |
+| Send the packed object back ("too vague", "shorter", "give me something to do this week") | Repacks it, up to twice |
+| Try to extract private notes or override the rules | Seals the hatch immediately, with no model call |
+
+Tip: the clearest way to see the agent work is a vague question with a mismatched product, then a pushback on the first draft.
+
 ## Requirements
 
 - Node.js 20.19 or newer
