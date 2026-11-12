@@ -358,6 +358,7 @@
 
     if (data.type === 'clarification') {
       conversationPhase = 'clarification';
+      calibrationPanel.dataset.stage = 'ask';
       calibrationStep.textContent = `ONE QUESTION · ${data.turn || 1} / ${data.maxTurns || 1}`;
       calibrationText.textContent = data.question;
       renderOptions(Array.isArray(data.options) ? data.options : []);
@@ -369,12 +370,14 @@
       leverLabel.textContent = 'PULL TO ANSWER';
       lever.setAttribute('aria-label', 'Pull lever to answer the machine\'s question');
       screen.textContent = '02 — ONE QUESTION BEFORE I PACK IT.';
+      calibrationPanel.querySelector('.calibration-main').classList.remove('is-scrollable');
       calibrationReply.focus();
       return;
     }
 
     conversationPhase = 'confirmation';
     confirmationStage = data.stage || 'plan';
+    calibrationPanel.dataset.stage = confirmationStage;
     renderOptions([]);
     calibrationReply.closest('label').hidden = !data.canRevise;
     calibrationSecondary.textContent = 'START OVER';
@@ -387,7 +390,7 @@
       draftBody.textContent = draft.message || '';
       draftBox.hidden = false;
       calibrationReplyLabel.textContent = data.canRevise
-        ? `SEND IT BACK? SAY WHY — OPTIONAL (${data.feedbackRoundsLeft} LEFT)`
+        ? `SEND BACK? SAY WHY (${data.feedbackRoundsLeft} LEFT)`
         : 'NO MORE REPACKS';
       calibrationReply.placeholder = 'Too vague? Too long? Tell me…';
       calibrationContinue.textContent = 'TAKE IT';
@@ -409,6 +412,11 @@
       lever.setAttribute('aria-label', 'Pull lever to confirm the order');
       screen.textContent = '03 — CHECK THE SLIP. RIGHT?';
     }
+    requestAnimationFrame(() => {
+      const main = calibrationPanel.querySelector('.calibration-main');
+      main.classList.toggle('is-scrollable', main.scrollHeight > main.clientHeight + 1);
+      main.scrollTop = 0;
+    });
     if (data.canRevise) calibrationReply.focus();
     else lever.focus();
   }
