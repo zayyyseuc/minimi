@@ -33,7 +33,7 @@ The production deployment contains only:
 4. `POST /api/vending/dispense` as the compatible one-shot endpoint. It does not run the agent.
 5. The agent, conversation, generation, privacy, and approved-profile modules under `src/vending/`.
 
-See [docs/vending-architecture.md](docs/vending-architecture.md) for the trust boundary and request lifecycle, or open the [standalone system diagram](docs/system-diagram.html).
+See [docs/vending-architecture.md](docs/vending-architecture.md) for the agent design, trust boundary and request lifecycle, and [docs/vending-evaluation.md](docs/vending-evaluation.md) for how it is tested.
 
 ## Using the machine
 
@@ -180,22 +180,28 @@ Set `SILICONFLOW_API_KEY` in the Vercel project for the required environments. `
 ├── api/vending/                 # Vercel function entry points
 ├── config/
 │   └── public-zai-profile.json  # Only approved personal context
-├── docs/                        # Architecture and evaluation guidance
+├── docs/
+│   ├── vending-architecture.md  # Agent design, trust boundary, lifecycle
+│   ├── vending-evaluation.md    # Test and release procedure
+│   ├── agent-character-card.html # The ZVM-01 character
+│   └── mini-me-deck/            # Presentation deck
 ├── public/vending/              # Static interface and visual assets
 ├── scripts/
 │   ├── build-vending.js         # Creates dist/
 │   ├── dev-server.js            # Minimal local runtime
 │   └── evaluate-vending.js      # Model-backed golden evaluation
 ├── src/vending/
-│   ├── generator.js             # Prompt, product behavior, output validation
 │   ├── agent.js                 # Tool-using agent loop, budgets, human pauses
 │   ├── conversation.js          # Signed tickets and the visitor-facing turn protocol
-│   ├── model-client.js           # Shared SiliconFlow client
+│   ├── generator.js             # Product definitions and the one-shot /dispense generator
+│   ├── model-client.js          # Shared SiliconFlow client
 │   ├── privacy.js               # Extraction detection and text sanitization
 │   ├── public-api.js            # HTTP contracts and rate limiting
 │   └── public-profile.js        # Typed access to the approved profile
 ├── test/
-│   ├── vending.test.js
+│   ├── vending.test.js          # Privacy and contract tests
+│   ├── vending-conversation.test.js
+│   ├── vending-agent.test.js    # Agent loop against a scripted model
 │   └── vending-evaluation-cases.json
 └── vercel.json
 ```
@@ -203,9 +209,9 @@ Set `SILICONFLOW_API_KEY` in the Vercel project for the required environments. `
 ## Security properties and limits
 
 - The runtime does not import a vault reader, retrieval system, vector index, or private profile store.
-- Visitor input is treated as untrusted data and cannot modify the system prompt or invoke tools.
-- Clarification answers are treated as untrusted data and screened before another model call.
-- Calibration state is signed, expires after 20 minutes, and is not persisted server-side.
+- Every visitor text (thought, answer, plan correction, draft feedback) is screened and reaches the model only as quoted, untrusted data.
+- The agent's only tools read the approved public profile. It has no file, network or code access.
+- The agent state travels in an HMAC-signed ticket that expires after 20 minutes and is not persisted server-side.
 - Trace IDs returned by the model are matched against the approved allowlist before display.
 - Generated text containing paths, email addresses, URLs, Markdown headings, or code fences is rejected.
 - Rate limiting is in memory. For multi-instance or high-traffic deployment, replace it with a shared store.

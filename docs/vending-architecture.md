@@ -17,22 +17,21 @@ flowchart LR
     subgraph Vercel
         UI --> Status[GET status]
         UI --> Turn[POST turn]
-        UI --> Dispense[POST dispense compatibility route]
-        Status --> PublicAPI[public-api.js]
-        Turn --> PublicAPI
-        Dispense --> PublicAPI
-        PublicAPI --> Conversation[conversation.js]
-        Conversation -->|clarification or confirmation| UI
-        Conversation --> Generator[generator.js]
-        PublicAPI --> Generator[generator.js]
-        Privacy[privacy.js] --> Generator
-        Profile[(public-zai-profile.json)] --> Generator
+        UI --> Dispense[POST dispense, one-shot legacy]
+        Turn --> PublicAPI[public-api.js]
+        PublicAPI --> Conversation[conversation.js: signed tickets]
+        Conversation --> Agent[agent.js: tool loop]
+        Agent -->|lookup_facts| Profile[(public-zai-profile.json)]
+        Privacy[privacy.js] --> Conversation
+        Privacy --> Agent
+        Dispense --> Generator[generator.js]
+        Profile --> Generator
     end
 
-    Generator --> SiliconFlow[SiliconFlow chat completion]
-    SiliconFlow --> Generator
-    Generator --> PublicAPI
-    PublicAPI --> UI
+    Agent <-->|choose next tool| SiliconFlow[SiliconFlow chat completion]
+    Generator --> SiliconFlow
+    Agent -->|question, plan, draft| UI
+    UI -->|answer, approve, feedback| Turn
 ```
 
 ## Agent design
