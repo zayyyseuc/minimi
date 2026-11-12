@@ -1,17 +1,20 @@
 {
-  "name": "personal-brain",
+  "name": "zai-vending-machine",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A privacy-bounded AI vending machine grounded in Zai's approved public portfolio.",
+  "private": true,
   "scripts": {
-    "build:vending": "node scripts/build-vending.js",
-    "eval:vending": "node scripts/evaluate-vending.js",
-    "test": "node --test",
-    "test:vending": "node --test test/vending.test.js",
-    "start": "node src/server.js",
-    "index": "node -e \"require('./src/indexer').indexAll()\""
+    "build": "node scripts/build-vending.js",
+    "dev": "node scripts/dev-server.js",
+    "evaluate": "node scripts/evaluate-vending.js",
+    "start": "node scripts/dev-server.js",
+    "test": "node --test"
   },
-  "keywords": [],
+  "keywords": [
+    "ai",
+    "portfolio",
+    "vercel"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -19,13 +22,7 @@
     "node": ">=20.19.0"
   },
   "dependencies": {
-    "chokidar": "^5.0.0",
-    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "multer": "^2.1.1",
-    "openai": "^6.36.0",
-    "pdf-parse": "^2.4.5",
-    "vectra": "^0.14.0"
+    "openai": "^6.36.0"
   }
 }

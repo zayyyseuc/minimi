@@ -1,68 +1,147 @@
 # Zai Vending Machine architecture
 
-## Public-source architecture
+## System boundary
 
-Personal Brain remains a local Express application, but the public Vending Machine now has a separate deployment entry. Its only personal context is the committed, owner-reviewed `config/public-zai-profile.json`, distilled from the supplied résumé, portfolio PDF, and public portfolio website. Phone numbers, personal email addresses, residential details, private relationships, vault notes, and unsupported inferences are excluded.
+Zai Vending Machine is a public-only application. Its runtime has no Personal Brain, Obsidian vault, vector index, file watcher, private profile store, or owner administration surface.
 
-The Vercel functions import `src/vending/public-api.js`, `generator.js`, privacy helpers, and the sanitized profile. They do not import `server.js`, Vectra, the watcher, the indexer, or the vault searcher.
+The only personal context available to generation is the committed, owner-reviewed `config/public-zai-profile.json`. That file is derived manually from the supplied résumé, portfolio PDF, and public portfolio website after removing contact information, residential details, private relationships, and unsupported claims.
 
-## Privacy boundary
+## Runtime diagram
+
+```mermaid
+flowchart LR
+    subgraph Browser
+        Visitor[Visitor] --> UI[Static vending machine]
+    end
+
+    subgraph Vercel
+        UI --> Status[GET status]
+        UI --> Turn[POST turn]
+        UI --> Dispense[POST dispense compatibility route]
+        Status --> PublicAPI[public-api.js]
+        Turn --> PublicAPI
+        Dispense --> PublicAPI
+        PublicAPI --> Conversation[conversation.js]
+        Conversation -->|clarification or confirmation| UI
+        Conversation --> Generator[generator.js]
+        PublicAPI --> Generator[generator.js]
+        Privacy[privacy.js] --> Generator
+        Profile[(public-zai-profile.json)] --> Generator
+    end
+
+    Generator --> SiliconFlow[SiliconFlow chat completion]
+    SiliconFlow --> Generator
+    Generator --> PublicAPI
+    PublicAPI --> UI
+```
+
+## Agent design
+
+The machine is a tool-using agent. At each step the model returns one JSON action, code executes it and returns an observation, and the loop repeats. Code never chooses the next step. It only enforces budgets, the privacy boundary, and the human checkpoints.
+
+| Tool | Effect |
+| --- | --- |
+| `lookup_facts` | Reads up to three approved public facts by keyword or id. The prompt carries only a fact index, so details enter the context on demand |
+| `ask_visitor` | Pauses and asks one question. Budget: two |
+| `propose_plan` | Pauses for approval of the agent's reading and its product choice, which may differ from the visitor's |
+| `write_draft` | Saves a draft. Blocked until the visitor has approved a plan |
+| `self_review` | The agent critiques its own draft and may send itself back to rewrite. Required before presenting |
+| `present_draft` | Pauses and shows the reviewed draft |
+
+### Human in the loop
+
+The loop stops at three points and resumes only on a visitor decision:
+
+1. the agent's question, which the visitor can answer or hand back;
+2. the plan, which the visitor can approve, correct (twice), or approve while keeping their original product;
+3. the draft, which the visitor can accept or send back with feedback (twice). Feedback re-enters the loop as untrusted data.
+
+Accepting the draft is deterministic: it dispenses the saved draft without another model call.
+
+## Request lifecycle
+
+1. The browser posts a thought and selected product to `POST /api/vending/turn`.
+2. `public-api.js` validates the method, input, product, and process-local rate limit.
+3. `conversation.js` screens extraction attempts. A match returns a sealed-hatch artifact with no model call.
+4. `agent.js` runs the loop. Each model call sees the system prompt, the full trace so far, and visitor text as quoted untrusted data.
+5. When the agent calls a human-checkpoint tool, the loop stops and the response carries an HMAC-signed ticket holding the whole agent state. The server stores nothing.
+6. The visitor answers, approves, or sends feedback. Every visitor text is screened again before the loop resumes.
+7. A request that spends its step or time budget returns `working`, and the browser immediately sends `continue`.
+8. Drafts are cleaned (no paths, emails, URLs, wikilinks, code fences, or headings), word counted, and their traces resolved. Fact traces are kept only for facts the agent actually looked up.
+9. On acceptance the browser receives the artifact and an agent log, and renders them as text.
+
+## Source and deployment topology
+
+The browser source lives in `public/vending/`. `scripts/build-vending.js` creates two static entry locations in `dist/`:
+
+- `dist/index.html` for the deployment root;
+- `dist/vending/` for the canonical asset paths used by the interface.
+
+The three Vercel entry points are intentionally thin:
+
+- `api/vending/status.js`
+- `api/vending/turn.js`
+- `api/vending/dispense.js`
+
+They delegate to `src/vending/public-api.js`, which imports only deploy-safe modules. The production path does not import any local-development server code.
+
+## Trust boundary
 
 ```text
-OWNER SOURCES                                  PUBLIC DEPLOYMENT
+OWNER-CONTROLLED CURATION                 PUBLIC RUNTIME
 
 résumé ───────────┐
-portfolio PDF ────┼─► manual fact review + contact removal
-portfolio website┘                 │
-                                   ▼
-                      config/public-zai-profile.json
-                                   │
-visitor input ───────────────► product prompt ─► SiliconFlow LLM
-                                   │
-                                   ▼
-                     answer + behavior trace + fact trace
+portfolio PDF ────┼─> manual review ──> public-zai-profile.json
+portfolio website┘      and redaction                 │
+                                                        ▼
+visitor input ─────────────────────────────────> generator ──> model
+                                                        │
+                                                        ▼
+                                          validated artifact + traces
 ```
 
-The public generation path never queries the vault. It can state only the bounded facts in the public JSON profile. Each model response returns exact behavioral-trait IDs and zero to three exact public-fact IDs. The server validates those IDs before the interface displays them, so invented trace labels cannot appear as grounding.
+No automated pipeline copies source documents into the profile. This deliberate manual boundary prevents a deployment from silently ingesting new private material.
 
-The public profile is deliberately safe to deploy and contains no raw résumé or PDF file. Local draft profiles and any legacy vault fingerprints remain under the gitignored `data/` directory and are not part of the Vercel build.
+## Privacy controls
 
-## Curation lifecycle
+### Input controls
 
-1. Read the owner-provided résumé, portfolio PDF, and published portfolio pages.
-2. Reconcile overlapping facts and avoid disputed or stale claims where the sources conflict.
-3. Remove contact and location details and keep only public work, education, skills, awards, and approved links.
-4. Encode bounded facts and abstract practice traits in `config/public-zai-profile.json`.
-5. Run tests that reject known contact details, local file paths, and private-runtime imports.
+- Request bodies must be valid JSON.
+- Input must be a string between 2 and 1,200 characters.
+- Clarification replies must be between 1 and 600 characters.
+- Product identifiers must match the fixed product catalog.
+- Common extraction and instruction-override attempts receive a safe artifact without a model call.
+- Tickets are HMAC-signed, length bounded, and expire after 20 minutes. They carry the agent state, which the client can read but not change.
 
-Prompt changes, public-profile changes, behavioral-profile changes, and the underlying model (`VENDING_MODEL`) are separately identified in responses.
+### Prompt controls
 
-## Answer grounding
+- Visitor input is wrapped as data, not appended as system instructions.
+- Confirmed context is also wrapped as data and cannot alter system rules.
+- The prompt explicitly forbids private-memory claims, file access, tool use, and unsupported personal facts.
+- Questions about Zai must be grounded in owner-approved public facts.
 
-The behavioral dimensions control how the machine reasons. The fact records cover five published projects plus bounded education and award information. Questions about Zai must use at least one fact record. Subjective questions are answered as analytical selections rather than falsely presented as Zai's documented favorite or personal belief.
+### Output controls
 
-## Public deployment
+- The model must return JSON.
+- Titles and messages are length bounded.
+- Suspicious paths, contact strings, URLs, Markdown headings, and code fences are rejected.
+- Behavioral and fact trace IDs are resolved against the approved profile; invented IDs are discarded.
 
-Do not expose the default Personal Brain server to the internet. Vercel instead builds only `public/vending/` into `dist/` and deploys the two files under `api/vending/`.
+## Data and external services
 
-Required Vercel environment:
-
-```env
-SILICONFLOW_API_KEY=...
-VENDING_MODEL=deepseek-ai/DeepSeek-V4-Flash
-VENDING_RATE_LIMIT=24
-```
-
-`SILICONFLOW_API_KEY` is read lazily inside generation, so a missing key causes a clear `503` from the dispense function rather than crashing the whole site. The status function and static interface still load. Do not configure or deploy `VAULT_PATH`, `INDEX_PATH`, owner tokens, `.env`, vector indexes, or vault files.
-
-## Evaluation
-
-Automated tests cover prompt-injection interception, bounded request validation, the complete five-project allowlist, removal of known contact details and local paths, clean startup without a model key, and the absence of retrieval/profile-store dependencies in the public generator. A live regression question verifies that a project answer names a real published project and returns a validated fact trace.
+| Component | Data handled | Persistence |
+| --- | --- | --- |
+| Browser | Visitor input, signed ticket, generated artifact | Browser state only |
+| Vercel function | Request, confirmed context, selected public facts, generated artifact | None in this repository |
+| SiliconFlow | Prompt and generated completion | Governed by the provider |
+| Public profile | Approved public facts and behavioral traits | Committed JSON |
+| Rate limiter | Request timestamps keyed by IP | Process memory only |
 
 ## Known limits
 
-- This is prompt-grounded generation from curated public facts, not model training or fine-tuning.
-- Source updates are manual. A changed résumé or portfolio requires reviewing and updating the public JSON profile.
-- A validated fact ID proves which allowlisted record the model selected; it does not independently verify the underlying résumé claim.
-- Subjective questions can receive an analytical selection, but the machine must not label it as Zai's documented favorite unless a source explicitly says so.
-- In-memory rate limiting is suitable for a single-process MVP. A multi-instance production deployment should use a shared rate-limit store and trusted proxy configuration.
+- In-memory rate limiting is not coordinated across Vercel instances.
+- Signed tickets prevent client-side changes but are replayable until their 20-minute expiry.
+- Public-profile updates require manual review and deployment.
+- A valid trace ID proves that the response selected an allowlisted record; it does not independently verify the underlying source claim.
+- Safety is layered prompt and application validation, not a formal non-disclosure guarantee.
+- The application is prompt-grounded generation, not fine-tuning or persistent learning.

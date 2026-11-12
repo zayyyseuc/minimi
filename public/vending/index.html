@@ -77,12 +77,18 @@
               <span id="calibrationStep">CALIBRATION</span>
               <button id="calibrationReset" type="button">START OVER</button>
             </div>
+            <ol id="agentLog" class="agent-log" aria-label="What the agent has done so far" hidden></ol>
             <p id="calibrationText"></p>
+            <div id="calibrationDraft" class="calibration-draft" hidden>
+              <b id="calibrationDraftTitle"></b>
+              <span id="calibrationDraftBody"></span>
+            </div>
             <div id="calibrationOptions" class="calibration-options"></div>
             <label class="calibration-reply">
               <span id="calibrationReplyLabel">YOUR ANSWER</span>
               <textarea id="calibrationReply" maxlength="600" rows="3" placeholder="Add the missing detail…"></textarea>
             </label>
+            <button id="calibrationKeep" class="calibration-keep" type="button" hidden>KEEP MY ORIGINAL CHOICE</button>
             <div class="calibration-actions">
               <button id="calibrationSecondary" type="button">LET MACHINE DECIDE</button>
               <button id="calibrationContinue" type="button">ANSWER</button>

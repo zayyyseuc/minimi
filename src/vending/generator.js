@@ -266,4 +266,4 @@ For questions about Zai or her work, use at least one relevant public fact and r
   };
 }
 
-module.exports = { PRODUCTS, PROMPT_VERSION, GENERIC_PROFILE, generateProduct, profileForMode, primaryLanguage, isPersonalHistoryQuery, isProjectJudgmentQuery, projectJudgmentGuidance, isVisualStyleQuery, visualStyleGuidance, personalBoundaryArtifact };
+module.exports = { serialFor, PRODUCTS, PROMPT_VERSION, GENERIC_PROFILE, generateProduct, profileForMode, primaryLanguage, isPersonalHistoryQuery, isProjectJudgmentQuery, projectJudgmentGuidance, isVisualStyleQuery, visualStyleGuidance, personalBoundaryArtifact };

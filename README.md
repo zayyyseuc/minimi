@@ -1,266 +1,194 @@
-# personal-brain
+# Zai Vending Machine
 
-A local-first personal knowledge assistant that lets you search, chat with, and capture ideas from your Obsidian vault — plus a separate PWA interface for family. Built with Node.js + Express, vectra (local vector index), and SiliconFlow-hosted embeddings and LLMs.
+A public, privacy-bounded AI experience that turns a visitor's thought into one of three artifacts:
 
-## What it does
+- **Reality Check** — identifies one consequential weakness or hidden assumption.
+- **Unexpected Connection** — connects the thought to a distant but defensible concept.
+- **Wild Card** — proposes a strange but usable intervention or experiment.
 
-- **Semantic search** over your Markdown notes using BAAI/bge-m3 embeddings
-- **Streaming chat** with DeepSeek-V3, grounded in your vault content
-- **Web search augmentation**: optionally enriches answers with live Tavily results
-- **File upload**: attach PDFs and images to a chat query for multimodal context
-- **Weekly review** card: auto-summarizes recently modified notes into tags and a reflection question
-- **Lab / idea capture**: quickly save fleeting thoughts with optional reminder dates
-- **Imaginations**: a dedicated space for longer reflective writing, tied to your ideas
-- **Conversation history**: all chats are persisted locally and resumable
-- **Auto file watching**: vault changes are re-indexed automatically via chokidar
-- **Mom PWA** (`/mom`): a separate installable interface for family — shows your status card, activity heatmap, recent public notes, and a milestone countdown; only surfaces notes with `public: true` in frontmatter, backed by a separate vector index
-- **Mobile-friendly UI**: responsive single-page app served from `public/index.html`, tested on iOS Safari
-- **Zai Vending Machine** (`/vending/`): a tactile public experience grounded only in an owner-approved, contact-free profile derived from Zai's résumé, portfolio PDF, and public portfolio website
-- **Visible grounding**: every answer can show the reasoning traits and published projects that materially shaped it
+Behind the machine is an **agent**, not a fixed script. The model decides each step from a small toolset: it looks up approved facts, asks the visitor a question when it needs one, proposes a plan (and may recommend a different product), drafts, critiques its own draft, and presents it. The visitor stays in the loop at three checkpoints: answering the agent's questions, approving or correcting its plan, and accepting or sending back the draft. The agent can only read an owner-reviewed public profile; it has no access to private notes, local files, personal memory, or a vector database.
 
-## Tech stack
+## Architecture
 
-| Layer | Choice |
-|---|---|
-| Server | Node.js + Express 5 |
-| Vector index | vectra (local, file-based) |
-| Embeddings | BAAI/bge-m3 via SiliconFlow |
-| LLM | DeepSeek-V3 via SiliconFlow |
-| Web search | Tavily Search API (optional) |
-| Frontend | Vanilla JS + marked.js (no build step) |
-| Mom PWA | Vanilla JS + Service Worker |
+```mermaid
+flowchart LR
+    Visitor[Visitor] --> UI[Static vending UI]
+    UI --> API[Vercel Functions]
+    API --> Guard[Validation and rate limit]
+    Guard --> Agent[Agent loop]
+    Agent <-->|choose next tool| Model[SiliconFlow LLM]
+    Agent -->|question, plan, draft| Visitor
+    Visitor -->|answer, approve, feedback| Agent
+    Agent -->|lookup_facts| Profile[(Approved public profile)]
+    Privacy[Privacy rules] --> Agent
+    Agent --> Validate[Output and trace validation]
+    Validate --> UI
+```
 
-## Prerequisites
+The production deployment contains only:
 
-- Node.js >= 20.19.0
+1. Static assets built from `public/vending/`.
+2. `GET /api/vending/status`.
+3. `POST /api/vending/turn` for the agent conversation.
+4. `POST /api/vending/dispense` as the compatible one-shot endpoint. It does not run the agent.
+5. The agent, conversation, generation, privacy, and approved-profile modules under `src/vending/`.
+
+See [docs/vending-architecture.md](docs/vending-architecture.md) for the trust boundary and request lifecycle, or open the [standalone system diagram](docs/system-diagram.html).
+
+## Requirements
+
+- Node.js 20.19 or newer
 - A SiliconFlow API key
-- An Obsidian vault (or any folder of Markdown files)
-- A Tavily API key (optional — only needed for web search)
 
-## Setup
+## Local development
 
 ```bash
-git clone <your-repo>
-cd personal-brain
 npm install
+cp .env.example .env
+# Add SILICONFLOW_API_KEY to .env
+npm run dev
 ```
 
-Copy the persona template and fill in your own context:
+Open `http://localhost:3000`.
+
+The development server uses only Node's built-in HTTP and file APIs. It serves the same static interface and calls the same handlers used by Vercel.
+
+## Environment variables
+
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `SILICONFLOW_API_KEY` | Yes | — | Authenticates model requests |
+| `VENDING_MODEL` | No | `deepseek-ai/DeepSeek-V4-Flash` | Selects the generation model |
+| `VENDING_RATE_LIMIT` | No | `60` | Requests allowed per IP in a ten-minute process window |
+| `VENDING_STATE_SECRET` | No | `SILICONFLOW_API_KEY` | Signs short-lived, stateless calibration tickets |
+| `PORT` | No, local only | `3000` | Local development port |
+
+Never add private vault paths, local indexes, résumé files, contact details, or owner-only credentials to the deployment environment.
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the local vending server |
+| `npm start` | Alias for the local vending server |
+| `npm run build` | Build the static Vercel output in `dist/` |
+| `npm test` | Run deterministic privacy and contract tests |
+| `npm run evaluate` | Run model-backed golden prompt evaluations |
+
+Evaluation filters can be forwarded after `--`:
 
 ```bash
-cp persona.example.md persona.md
-# then edit persona.md — describe who you are, your projects, preferred tone, etc.
+npm run evaluate -- --limit 4
+npm run evaluate -- --category synthesis
+npm run evaluate -- --case synthesis-visual-style --repeat 3
 ```
 
-Create a `.env` file in the project root:
+See [docs/vending-evaluation.md](docs/vending-evaluation.md) for the full release procedure.
 
-```env
-SILICONFLOW_API_KEY=your_key_here
-VAULT_PATH=/absolute/path/to/your/obsidian/vault
-INDEX_PATH=/absolute/path/to/store/vector/index
+## Public profile
 
-# Mom PWA (optional)
-MOM_INDEX_PATH=/absolute/path/to/store/mom-vector-index
-MOM_EXCLUDED_FOLDERS=private,journal   # comma-separated folders to skip when building mom index
+All personal context available to the model lives in [config/public-zai-profile.json](config/public-zai-profile.json). It contains:
 
-# Web search (optional)
-TAVILY_API_KEY=your_tavily_key_here
+- approved behavioral traits;
+- bounded public facts about published work, education, and awards;
+- approved public source labels and links;
+- an explicit list of excluded information.
 
-PORT=3000
+Updating the résumé, portfolio, or website does not automatically change the application. Review the source manually, remove private or unsupported claims, update the JSON file, and run the complete test and evaluation suites.
 
-# Zai Vending Machine owner operations (required for /vending-owner/)
-VENDING_OWNER_TOKEN=choose-a-long-random-token
+## API
 
-# Optional Vending Machine settings
-VENDING_MODEL=deepseek-ai/DeepSeek-V4-Flash
-VENDING_RATE_LIMIT=24
+### `GET /api/vending/status`
+
+Returns model readiness, profile versions, prompt version, public fact count, and available products. It remains available without a model key so deployment health can be inspected safely.
+
+### `POST /api/vending/dispense`
+
+Request:
+
+```json
+{
+  "input": "What if a city measured quietness instead of traffic?",
+  "product": "unexpected_connection"
+}
 ```
 
-## First-time indexing
+`product` must be one of:
 
-Before starting the server, build the vector index:
+- `reality_check`
+- `unexpected_connection`
+- `wild_card`
+
+The input must contain between 2 and 1,200 characters. Successful responses include the artifact, version identifiers, and validated behavioral and fact traces.
+
+### `POST /api/vending/turn`
+
+Starts the agent with the same `input` and `product` fields. The response is one of:
+
+- `clarification` — a question the agent chose to ask, with optional choices (human checkpoint);
+- `confirmation` with `stage: "plan"` — the agent's reading of the thought and the product it recommends, which may differ from the visitor's choice (human checkpoint);
+- `confirmation` with `stage: "draft"` — a self-reviewed draft the visitor can accept or send back (human checkpoint);
+- `working` — the agent used its per-request budget and needs a `continue` call, which the browser sends automatically;
+- `artifact` — the final validated object, with an `agentLog` of what the agent did.
+
+Follow-up requests return the `stateToken` with an `action`:
+
+| Stage | Actions |
+| --- | --- |
+| clarification | `answer` (with `answer`), `skip` |
+| plan | `dispense` (approve), `keep` (approve but keep the visitor's product), `revise` (with `answer`) |
+| draft | `dispense` (accept), `revise` (with feedback in `answer`) |
+| working | `continue` |
+
+Tickets expire after 20 minutes. They carry the whole agent state, are signed, and contain no server-side session or private profile data. Limits: two questions, two plan corrections, two rounds of draft feedback, two self-revisions and 20 model calls per session.
+
+## Deployment
+
+Vercel uses `vercel.json` to run `npm run build`, publishes `dist/`, and exposes the three functions in `api/vending/`.
+
+Before deploying:
 
 ```bash
-npm run index
-```
-
-This walks every `.md` file in `VAULT_PATH`, chunks each file into ~500-character blocks, embeds them, and writes the index to `INDEX_PATH`. Depending on vault size this may take a few minutes.
-
-If you're using the Mom PWA, trigger the mom index via the API after the server is running:
-
-```bash
-curl -X POST http://localhost:3000/api/mom-reindex
-```
-
-Or use the `/api/mom-reindex` button in the mom debug panel.
-
-## Running
-
-```bash
-npm start
-```
-
-Open `http://localhost:3000` in your browser. On subsequent runs the file watcher picks up any vault changes and re-indexes them automatically — no need to run `npm run index` again.
-
-The Mom PWA is at `http://localhost:3000/mom` — installable on iOS/Android via "Add to Home Screen."
-
-The Zai Vending Machine is at `http://localhost:3000/vending/`. Its public facts and behavior traits live in `config/public-zai-profile.json`; the generator does not read the vault or vector index.
-
-See [`docs/vending-architecture.md`](docs/vending-architecture.md) for the privacy boundary, lifecycle, evaluation workflow, deployment isolation, and known limitations.
-
-## Deploy only the Vending Machine to Vercel
-
-The repository includes two standalone serverless functions and a public-only build. Vercel receives only the Vending Machine interface plus the sanitized JSON profile; it does not serve the Personal Brain, Mom PWA, or owner panel.
-
-1. In Vercel, set `SILICONFLOW_API_KEY` for Production, Preview, and Development as needed.
-2. Optionally set `VENDING_MODEL` and `VENDING_RATE_LIMIT`.
-3. Redeploy the latest `main` commit. `vercel.json` runs `npm run build:vending` and publishes `dist/`.
-
-Local deployment check:
-
-```bash
-npm run build:vending
 npm test
+npm run build
 ```
 
-The public API is limited to:
-
-- `GET /api/vending/status`
-- `POST /api/vending/dispense`
-
-## Mom PWA: public notes
-
-Notes are visible to mom only when their frontmatter contains:
-
-```yaml
----
-public: true
----
-```
-
-All other notes are excluded from the mom index. Folders listed in `MOM_EXCLUDED_FOLDERS` are skipped entirely regardless of frontmatter.
+Set `SILICONFLOW_API_KEY` in the Vercel project for the required environments. `VENDING_MODEL` and `VENDING_RATE_LIMIT` are optional.
 
 ## Project structure
 
-```
-personal-brain/
-├── api/vending/             # Standalone Vercel status + dispense functions
+```text
+.
+├── api/vending/                 # Vercel function entry points
 ├── config/
-│   └── public-zai-profile.json # Sanitized résumé/portfolio facts and traits
+│   └── public-zai-profile.json  # Only approved personal context
+├── docs/                        # Architecture and evaluation guidance
+├── public/vending/              # Static interface and visual assets
 ├── scripts/
-│   └── build-vending.js     # Builds the public-only static bundle
-├── public/
-│   ├── index.html            # Main single-page UI
-│   ├── vending/              # Public Vending Machine interface
-│   ├── vending-owner/        # Authenticated local calibration panel
-│   └── mom/
-│       ├── index.html        # Mom PWA shell
-│       ├── manifest.json     # PWA manifest
-│       └── sw.js             # Service worker
-├── src/
-│   ├── server.js             # Express routes
-│   ├── searcher.js           # Embedding + streaming LLM query
-│   ├── indexer.js            # Vault walker and vectra index writer
-│   ├── mom-indexer.js        # Public-notes-only index for mom
-│   ├── web-search.js         # Tavily web search helper
-│   ├── watcher.js            # chokidar file watcher
-│   ├── reviewer.js           # Weekly review summary generator (cached 24h)
-│   ├── lab.js                # Idea capture and Lab note management
-│   ├── imaginations.js       # Imagination note read/write
-│   ├── reminders.js          # Simple reminder store (JSON)
-│   ├── conversations.js      # Conversation persistence (JSON per file)
-│   └── vending/              # Learning, privacy, profiles, generation, routes
-├── persona.example.md        # Persona template — copy to persona.md and fill in
-├── persona.md                # Your persona and rules — gitignored, loaded at startup
-├── data/                     # Runtime data — gitignored
-│   ├── conversations/
-│   └── reminders.json
-├── cache/                    # Review summary cache — gitignored
-├── mom-index/                # Mom vector index — gitignored, built via /api/mom-reindex
-└── .env                      # Secrets — gitignored
+│   ├── build-vending.js         # Creates dist/
+│   ├── dev-server.js            # Minimal local runtime
+│   └── evaluate-vending.js      # Model-backed golden evaluation
+├── src/vending/
+│   ├── generator.js             # Prompt, product behavior, output validation
+│   ├── agent.js                 # Tool-using agent loop, budgets, human pauses
+│   ├── conversation.js          # Signed tickets and the visitor-facing turn protocol
+│   ├── model-client.js           # Shared SiliconFlow client
+│   ├── privacy.js               # Extraction detection and text sanitization
+│   ├── public-api.js            # HTTP contracts and rate limiting
+│   └── public-profile.js        # Typed access to the approved profile
+├── test/
+│   ├── vending.test.js
+│   └── vending-evaluation-cases.json
+└── vercel.json
 ```
 
-## API overview
+## Security properties and limits
 
-### Core
-
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/ask` | SSE streaming chat with RAG |
-| POST | `/api/ask-with-file` | Chat with attached PDF/image files |
-| GET | `/api/review` | Weekly summary (24h cache) |
-| POST | `/api/reindex` | Trigger a full re-index |
-| GET | `/api/status` | Server + index health |
-| GET | `/api/health` | Detailed health check |
-
-### Lab & ideas
-
-| Method | Path | Description |
-|---|---|---|
-| GET/POST | `/api/lab` | List or create Lab ideas |
-| GET | `/api/lab/:filename` | Fetch a single Lab note |
-| PATCH | `/api/lab/:filename/discuss` | Append or remove a Q&A entry |
-| POST | `/api/lab/:filename/rewrite` | AI-rewrite note body from conversation |
-| PATCH | `/api/lab/:filename/move` | Move note to a different folder |
-| DELETE | `/api/lab/:filename` | Delete a Lab note |
-| GET/POST | `/api/lab-folders` | List or create Lab folders |
-
-### Imaginations & conversations
-
-| Method | Path | Description |
-|---|---|---|
-| GET/POST | `/api/imaginations` | List or create imagination notes |
-| GET | `/api/imaginations/:filename` | Fetch one imagination note |
-| PATCH | `/api/imaginations/:filename` | Append essay text |
-| GET/POST | `/api/conversations` | List or save conversations |
-| GET/DELETE | `/api/conversations/:id` | Fetch or delete a conversation |
-
-### Reminders & notes
-
-| Method | Path | Description |
-|---|---|---|
-| GET/POST | `/api/reminders` | List due reminders or create one |
-| PATCH | `/api/reminders/:id` | Snooze or mark done |
-| DELETE | `/api/reminders/:id` | Delete a reminder |
-| GET | `/api/note` | Read any vault note by relative path |
-| POST | `/api/capture` | Quick-save an idea to Lab |
-| POST | `/api/save-memory` | Save a Q&A pair to vault as a note |
-
-### Mom PWA
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/mom-status` | Read Zia's current status card |
-| POST | `/api/mom-status` | Update the status card |
-| GET | `/api/mom-activity` | Activity heatmap data |
-| GET | `/api/mom-notes` | Recent public notes |
-| GET | `/api/mom-milestones` | Countdown milestones |
-| POST | `/api/mom-reindex` | Rebuild the mom vector index |
-| POST | `/api/mom-ask` | SSE streaming chat grounded in public notes |
-| GET | `/api/mom-health` | Mom index health check |
-| GET | `/api/mom-debug` | Request log (debug) |
-
-## Importing from Claude (optional)
-
-If you want to import your [Claude.ai conversation history](https://support.anthropic.com/en/articles/8914208-how-do-i-export-my-claude-ai-data) into the vault, use the one-time migration script:
-
-1. Request a data export from Claude.ai and download the zip file.
-2. Add the path to your `.env`:
-
-```env
-CLAUDE_EXPORT_DIR=/absolute/path/to/extracted/export-folder
-```
-
-3. Run the import:
-
-```bash
-node src/import-claude.js
-```
-
-This reads `memories.json`, `conversations.json`, and any `projects/` from the export, writes them as Markdown notes into `<VAULT_PATH>/claude-import/`, then triggers a full re-index. The script is idempotent — safe to run again if you get a newer export.
-
-## Notes
-
-- All data (conversations, reminders, cache) is stored locally — nothing leaves your machine except API calls to SiliconFlow and (optionally) Tavily.
-- The vector index lives at `INDEX_PATH` and is not committed to git. The mom index lives at `MOM_INDEX_PATH` (default: `./mom-index/`).
-- The weekly review summary is cached in `cache/review.json` and regenerated when the vault file count changes or the cache is older than 24 hours.
+- The runtime does not import a vault reader, retrieval system, vector index, or private profile store.
+- Visitor input is treated as untrusted data and cannot modify the system prompt or invoke tools.
+- Clarification answers are treated as untrusted data and screened before another model call.
+- Calibration state is signed, expires after 20 minutes, and is not persisted server-side.
+- Trace IDs returned by the model are matched against the approved allowlist before display.
+- Generated text containing paths, email addresses, URLs, Markdown headings, or code fences is rejected.
+- Rate limiting is in memory. For multi-instance or high-traffic deployment, replace it with a shared store.
+- This is prompt-grounded generation, not model training or fine-tuning.

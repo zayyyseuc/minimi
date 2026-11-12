@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini-Me · Zai Vending Machine</title>
+<!--
+  EDITING: each slide is one <section class="slide">. Edit text in place.
+  Speaker notes are in <aside class="notes"> inside each slide (press N).
+  Keys: ← → / Space navigate · F fullscreen · N notes · Home/End · 1-6 jump.
+  Colors are the CSS variables in :root (black and white only).
+-->
+<style>
+  :root { --bg: #fff; --ink: #000; --mid: #6b6b6b; --soft: #ededed; --line: #000;
+    --sans: "Helvetica Neue", Arial, sans-serif; --serif: Georgia, "Times New Roman", serif; --mono: "Courier New", monospace; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+  body { font-family: var(--sans); color: var(--ink); }
+
+  #viewport { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage { width: 1920px; height: 1080px; position: relative; transform-origin: center; flex: none; }
+  .slide { position: absolute; inset: 0; background: var(--bg); padding: 88px 110px; display: none; overflow: hidden; }
+  .slide.active { display: block; }
+  .pg { position: absolute; right: 110px; bottom: 40px; font: 400 20px var(--mono); color: var(--mid); }
+
+  h1, h2 { margin: 0; font-weight: 900; letter-spacing: -.04em; line-height: .95; }
+  h2 { font-size: 96px; }
+  h1 em, h2 em { font: italic 400 1em/1 var(--serif); letter-spacing: -.02em; }
+  p { margin: 0; }
+  .lead { font: 400 36px/1.35 var(--serif); }
+  .shot { border: 3px solid var(--ink); box-shadow: 16px 16px 0 var(--ink); background: #fff; }
+  .shot img { width: 100%; display: block; filter: grayscale(1) contrast(1.05); }
+  .box { border: 3px solid var(--ink); padding: 30px 34px; }
+  .box.fill { background: var(--ink); color: var(--bg); }
+  .box h3 { margin: 0 0 14px; font: 900 28px/1 var(--sans); text-transform: uppercase; letter-spacing: .02em; }
+  ul { margin: 0; padding: 0; list-style: none; }
+  li { font: 400 29px/1.3 var(--serif); padding: 7px 0 7px 28px; position: relative; }
+  li::before { content: ""; position: absolute; left: 0; top: 19px; width: 12px; height: 12px; background: currentColor; }
+  li.no::before { background: none; border: 3px solid currentColor; }
+
+  /* 1 */
+  #s1 .grid { display: grid; grid-template-columns: 820px 1fr; gap: 72px; align-items: center; height: 900px; }
+  #s1 h1 { font-size: 118px; }
+  #s1 .lead { margin-top: 40px; }
+  #s1 .sub { margin-top: 28px; font: 400 26px/1.4 var(--sans); color: var(--mid); }
+  #s1 .statement { margin-top: 44px; padding-top: 26px; border-top: 4px solid var(--ink); font: italic 400 42px/1.2 var(--serif); }
+
+  /* 2 */
+  #s2 .grid { display: grid; grid-template-columns: 1fr 1fr 740px; gap: 28px; margin-top: 56px; }
+  #s2 .col { display: grid; gap: 28px; align-content: start; }
+  #s2 .q { font: 400 28px/1.35 var(--serif); }
+  #s2 .q + .q { margin-top: 22px; }
+  #s2 .q b { display: block; font: 700 17px var(--sans); letter-spacing: .2em; margin-bottom: 6px; opacity: .6; }
+
+  /* 3 */
+  #s3 .flow { display: grid; grid-template-columns: repeat(6, 1fr); margin-top: 52px; }
+  #s3 .node { border: 3px solid var(--ink); padding: 22px 20px; margin-right: 38px; position: relative; min-height: 220px; }
+  #s3 .node:last-child { margin-right: 0; }
+  #s3 .node::after { content: "→"; position: absolute; right: -41px; top: 50%; transform: translateY(-50%); font: 900 36px var(--sans); }
+  #s3 .node:last-child::after { display: none; }
+  #s3 .node.prob { background: var(--ink); color: var(--bg); }
+  #s3 .node h3 { margin: 0 0 12px; font: 900 28px/1 var(--sans); text-transform: uppercase; }
+  #s3 .node p { font: 400 23px/1.3 var(--serif); }
+  #s3 .key { margin-top: 18px; display: flex; gap: 36px; font: 400 22px var(--sans); color: var(--mid); }
+  #s3 .key i { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--ink); vertical-align: -5px; margin-right: 10px; } #s3 .key i.f { background: var(--ink); }
+  #s3 .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 40px; }
+  #s3 li { font-size: 27px; }
+
+  /* 4 */
+  #s4 .flowwrap { margin-top: 64px; } #s4 .flow { width: 100%; display: block; }
+  .flow .bt { font: 900 26px 'Helvetica Neue', Arial, sans-serif; } .flow .bb { font: 400 23px Georgia, serif; } .flow .br { font: 900 30px 'Helvetica Neue', Arial, sans-serif; }
+  .flow .lane { font: 900 24px 'Helvetica Neue', Arial, sans-serif; letter-spacing: .12em; fill: #fff; } .flow .key { font: 400 22px 'Helvetica Neue', Arial, sans-serif; fill: #6b6b6b; } .flow marker path { fill: #000; }
+  #s4 .wrap { display: grid; grid-template-columns: 1fr 640px; gap: 40px; margin-top: 56px; }
+  table { width: 100%; border-collapse: collapse; border: 3px solid var(--ink); }
+  td { padding: 24px 26px; border-top: 3px solid var(--ink); font: 400 28px/1.3 var(--serif); vertical-align: top; }
+  tr:first-child td { border-top: 0; }
+  td:first-child { width: 33%; font: 900 28px/1.15 var(--sans); text-transform: uppercase; }
+  td b { font-family: var(--sans); font-weight: 900; }
+  .st { display: inline-block; font: 700 17px var(--sans); letter-spacing: .16em; padding: 5px 10px; margin-bottom: 8px; background: var(--ink); color: var(--bg); }
+  .st.o { background: none; color: var(--ink); border: 2px dashed var(--ink); }
+  #s4 .prompt { font: 400 28px/1.3 var(--serif); padding: 20px 0; border-top: 2px solid rgba(255,255,255,.35); }
+  #s4 .prompt:first-child { border: 0; padding-top: 0; }
+
+  /* 5 */
+  #s5 h2 { font-size: 84px; }
+  #s5 .ba { display: grid; grid-template-columns: 1fr 1fr; margin-top: 44px; border: 3px solid var(--ink); }
+  #s5 .col { padding: 34px 40px; }
+  #s5 .col.after { background: var(--ink); color: var(--bg); }
+  #s5 h3 { margin: 0 0 20px; font: 900 40px/1 var(--sans); text-transform: uppercase; }
+  #s5 .row { margin-top: 18px; font: 400 28px/1.32 var(--serif); }
+  #s5 .row .l { display: block; font: 700 17px var(--sans); letter-spacing: .2em; text-transform: uppercase; opacity: .6; margin-bottom: 6px; }
+  #s5 .out { font: 400 29px/1.34 var(--serif); padding: 20px 24px; border-left: 8px solid currentColor; background: rgba(128,128,128,.14); }
+  #s5 mark { background: var(--ink); color: var(--bg); padding: 0 6px; } #s5 .after mark { background: var(--bg); color: var(--ink); }
+  #s5 code { font: 700 22px var(--mono); }
+  #s5 .res { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 28px; font: 400 29px/1.3 var(--serif); }
+  #s5 .res .big { font: 900 60px/1 var(--sans); display: block; margin-bottom: 4px; }
+
+  /* 6 */
+  #s6 h2 { font-size: 84px; } h2 em { white-space: nowrap; }
+  #s6 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 52px; }
+  #s6 li { font-size: 28px; }
+  #s6 .q { margin-top: 48px; padding-top: 28px; border-top: 4px solid var(--ink); font: italic 400 56px/1.12 var(--serif); }
+  #s6 .links { margin-top: 24px; font: 400 26px/1.4 var(--mono); }
+  #s6 .links a { color: var(--ink); font-weight: 700; }
+
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; height: 5px; background: #333; z-index: 5; }
+  #bar i { display: block; height: 100%; width: 0; background: #fff; transition: width .25s; }
+  #hud { position: fixed; right: 16px; bottom: 16px; z-index: 6; font: 13px var(--mono); color: #aaa; background: rgba(0,0,0,.6); padding: 6px 10px; transition: opacity .3s; }
+  #notes { position: fixed; left: 0; right: 0; bottom: 0; max-height: 38vh; overflow: auto; background: #000; color: #fff; padding: 18px 28px 24px; font: 18px/1.55 Georgia, serif; border-top: 3px solid #fff; z-index: 7; display: none; }
+  #notes.show { display: block; } #notes b { font: 700 12px var(--mono); letter-spacing: .15em; display: block; margin-bottom: 6px; opacity: .7; }
+  .notes { display: none; }
+  @media print { html, body { overflow: visible; height: auto; } #viewport { position: static; display: block; } #stage { transform: none !important; height: auto; } .slide { display: block !important; position: relative; height: 1080px; page-break-after: always; } #bar, #hud, #notes { display: none; } }
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- 1 · INTRODUCTION -->
+<section class="slide" id="s1">
+  <div class="grid">
+    <div>
+      <h1>Zai Vending Machine: <em>a Mini-Me AI experience</em></h1>
+      <p class="lead">Insert a thought, pick a product, pull the lever. The machine returns a new object shaped by how I reason, not by what I have written.</p>
+      <p class="sub">Built from my Personal Brain, minus the private notes: it runs only on a reviewed public profile.</p>
+      <p class="statement">A Mini-Me should carry how I judge, not what I have written.</p>
+    </div>
+    <div class="shot"><img src="assets/machine-idle.png" alt="Zai Vending Machine interface"></div>
+  </div>
+  <span class="pg">01</span>
+  <aside class="notes">
+    This is the Zai Vending Machine, my Mini-Me for Project 1. You type a thought, pick one of three products — Reality Check, Unexpected Connection or Wild Card — and pull the lever. What comes out is a new object, not a summary of anything I wrote.
+    It started inside my Personal Brain, which searches my private notes. For the Mini-Me I kept the behavior and dropped the private retrieval: the machine only knows a public profile I reviewed by hand.
+    The design intention in one line: a Mini-Me should carry how I judge, not what I have written.
+  </aside>
+</section>
+
+<!-- 2 · INTENTION -->
+<section class="slide" id="s2">
+  <h2>Designing <em>my AI behavior</em></h2>
+  <div class="grid">
+    <div class="col">
+      <div class="box"><h3>Represents</h3><ul><li>Reframe the measurement</li><li>Make the idea testable</li><li>Find the working loop</li></ul></div>
+      <div class="box"><h3>Does</h3><ul><li>One sharp point per answer</li><li>Mechanism before novelty</li><li>Ends with a test</li></ul></div>
+    </div>
+    <div class="col">
+      <div class="box"><h3>Avoids</h3><ul><li class="no">Claiming private memory</li><li class="no">Inventing personal facts</li><li class="no">Opening with a disclaimer</li></ul></div>
+      <div class="box fill"><h3>Stays human</h3><ul><li>What is public</li><li>Which facts are approved</li><li>Whether an answer is good</li></ul></div>
+    </div>
+    <div class="box fill">
+      <h3>System card · excerpt</h3>
+      <div class="q"><b>PURPOSE</b>“Generate a new response shaped by Zai’s approved public practice profile.”</div>
+      <div class="q"><b>BEHAVIOR</b>“Identify exactly one consequential weakness… End with one concrete question or test.”</div>
+      <div class="q"><b>TONE</b>“Explain why something works before celebrating that it is novel.”</div>
+      <div class="q"><b>BOUNDARY</b>“Never claim to remember, retrieve, quote, summarize, or reveal private material.”</div>
+    </div>
+  </div>
+  <span class="pg">02</span>
+  <aside class="notes">
+    I did not write a biography. I translated how I think into twelve behavioral traits across four dimensions — reasoning, judgment, voice, knowledge. The strongest are "prototype over pitch" and "find the working loop".
+    The system card on the right is lifted from the actual prompt: purpose, one product behavior, tone, and a hard boundary. The repo has no separate formal System Card; replace this excerpt with your course version if it differs.
+    The black box under "Stays human" is the key point: the machine never decides what is public, never approves its own facts, and never judges its own answers.
+  </aside>
+</section>
+
+<!-- 3 · ARCHITECTURE -->
+<section class="slide" id="s3">
+  <h2>How the <em>system works</em></h2>
+  <div class="flow">
+    <div class="node"><h3>Input</h3><p>A thought and a product choice</p></div>
+    <div class="node"><h3>Gate</h3><p>Validation, rate limit, injection and extraction checks</p></div>
+    <div class="node"><h3>Prompt</h3><p>Language and mode routing, then one assembled prompt</p></div>
+    <div class="node prob"><h3>Model</h3><p>DeepSeek-V4-Flash via SiliconFlow</p></div>
+    <div class="node"><h3>Validate</h3><p>Parse, length caps, content filter, trace check</p></div>
+    <div class="node"><h3>Output</h3><p>Object with method and source chips</p></div>
+  </div>
+  <div class="key"><span><i></i>Deterministic code</span><span><i class="f"></i>Probabilistic model</span><span style="margin-left:auto">No retrieval: all 9 approved facts go into the prompt</span></div>
+  <div class="three">
+    <div class="box"><h3>Model sees</h3><ul><li>Visitor input as data</li><li>12 behavioral traits</li><li>9 approved public facts</li></ul></div>
+    <div class="box"><h3>Model never sees</h3><ul><li class="no">Vault or private notes</li><li class="no">Files, names, contacts</li><li class="no">Other visitors or history</li></ul></div>
+    <div class="box fill"><h3>Human decides</h3><ul><li>What enters the profile</li><li>How answers are scored</li><li>What ships</li></ul></div>
+  </div>
+  <span class="pg">03</span>
+  <aside class="notes">
+    Read it left to right. White boxes are plain code and behave the same every time: input checks, rate limiting, extraction detection, mode routing, output validation. Only the black Model box is probabilistic: one call to DeepSeek-V4-Flash through SiliconFlow, JSON mode, 300 tokens, temperature 0.72 (1.05 for Wild Card).
+    There is no RAG. I removed retrieval on purpose; the nine approved facts are small enough to sit in the prompt, so there is no index that could surface something private.
+    The model sees the visitor's text, my twelve traits and nine facts. It never sees my vault, files, other visitors or any tool. The last box is where I stay in the loop.
+  </aside>
+</section>
+
+<!-- 4 · EVALUATION -->
+<section class="slide" id="s4">
+  <h2>Evaluating <em>the Mini-Me</em></h2>
+  <div class="flowwrap">
+<svg class="flow" viewBox="0 0 1700 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Evaluation flow: what I did versus what ran automatically">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+<rect x="0" y="0" width="1700" height="230" fill="#fff" stroke="#000" stroke-width="3"/>
+<rect x="0" y="260" width="1700" height="230" fill="#ececec" stroke="#000" stroke-width="3"/>
+<rect x="0" y="0" width="64" height="230" fill="#000"/><text transform="translate(42 115) rotate(-90)" text-anchor="middle" class="lane">I DID</text>
+<rect x="0" y="260" width="64" height="230" fill="#000"/><text transform="translate(42 375) rotate(-90)" text-anchor="middle" class="lane">AUTOMATED</text>
+<rect x="100" y="20" width="270" height="190" fill="#fff" stroke="#000" stroke-width="3"/><text x="122" y="62" class="bt" fill="#000">1 · DEFINE</text><text x="122" y="92" class="bb" fill="#000">16 fixed prompts</text><text x="122" y="120" class="bb" fill="#000">9 categories</text><text x="122" y="148" class="bb" fill="#000">pass rules each</text>
+<rect x="100" y="280" width="270" height="190" fill="#fff" stroke="#000" stroke-width="3"/><text x="122" y="322" class="bt" fill="#000">UNIT TESTS</text><text x="122" y="352" class="bb" fill="#000">Plain code,</text><text x="122" y="380" class="bb" fill="#000">no model call</text><text x="122" y="458" class="br" fill="#000">11 / 11 pass</text>
+<rect x="410" y="280" width="270" height="190" fill="#000" stroke="#000" stroke-width="3"/><text x="432" y="322" class="bt" fill="#fff">2 · RUN</text><text x="432" y="352" class="bb" fill="#fff">Send each prompt</text><text x="432" y="380" class="bb" fill="#fff">to the model,</text><text x="432" y="408" class="bb" fill="#fff">collect its answer</text>
+<rect x="720" y="280" width="270" height="190" fill="#fff" stroke="#000" stroke-width="3"/><text x="742" y="322" class="bt" fill="#000">3 · CHECK</text><text x="742" y="352" class="bb" fill="#000">Language · length</text><text x="742" y="380" class="bb" fill="#000">Facts cited</text><text x="742" y="408" class="bb" fill="#000">Banned phrases</text><text x="742" y="458" class="br" fill="#000">16 / 16 pass</text>
+<rect x="1030" y="20" width="270" height="190" fill="#fff" stroke="#000" stroke-width="3"/><text x="1052" y="62" class="bt" fill="#000">4 · READ</text><text x="1052" y="92" class="bb" fill="#000">Compare v3 and v4</text><text x="1052" y="120" class="bb" fill="#000">outputs by eye,</text><text x="1052" y="148" class="bb" fill="#000">count disclaimers</text><text x="1052" y="198" class="br" fill="#000">6/6 → 0/6</text>
+<rect x="1340" y="20" width="270" height="190" fill="#fff" stroke="#000" stroke-width="3" stroke-dasharray="10 8"/><text x="1362" y="62" class="bt" fill="#000">5 · SCORE</text><text x="1362" y="92" class="bb" fill="#000">Rubric, 7 criteria</text><text x="1362" y="120" class="bb" fill="#000">by a human</text><text x="1362" y="198" class="br" fill="#000">Not done yet</text>
+<g fill="none" stroke="#000" stroke-width="3" marker-end="url(#ah)"><path d="M370 115 L400 115 L400 375 L410 375"/><path d="M680 375 L720  375"/><path d="M990 375 L1010 375 L1010 115 L1030 115"/><path d="M1300 115 L1340 115" stroke-dasharray="10 8"/></g>
+<text x="0" y="535" class="key">Black box = probabilistic model output · everything else is fixed code or a human reading · dashed = not done</text>
+</svg>
+  </div>
+  <span class="pg">04</span>
+  <aside class="notes">
+    Top lane is what I did; bottom lane is what ran automatically.
+    1 Define: I wrote sixteen fixed prompts across nine categories — including privacy attacks and a Chinese prompt — and a pass rule for each: required facts, language, length, banned evasive phrasing.
+    2 Run: a script sends each prompt to the machine and collects the model's answer. This is the only probabilistic step.
+    3 Check: the script checks every answer against the pass rules. All sixteen pass case by case; on the first full run one reply came back unreadable and stopped the runner, and it did not repeat in eight retries.
+    Separately, eleven unit tests check the plain code with no model call: all pass.
+    4 Read: for the prompt behind slide 5, I compared the v3 and v4 outputs and counted disclaimer-first openings by reading, six of six down to zero of six. The script does not measure this.
+    5 Score: a seven-criteria human rubric exists, but I have not scored anything yet. Automated checks cannot judge reasoning quality, so this is the missing piece.
+  </aside>
+</section>
+
+<!-- 5 · ITERATION -->
+<section class="slide" id="s5">
+  <h2>From initial behavior <em>to revised behavior</em></h2>
+  <div class="ba">
+    <div class="col">
+      <h3>Before · v3</h3>
+      <div class="row"><span class="l">Instruction</span>No judgment mode. Only: “make an explicitly analytical selection.”</div>
+      <div class="row"><span class="l">“Tell me one project that you like the least.”</span>
+        <div class="out"><mark>I can’t claim a least-liked project; that is a preference Zai has not documented</mark>, and disliking one would be a personal fact I don’t have…</div></div>
+    </div>
+    <div class="col after">
+      <h3>After · v4</h3>
+      <div class="row"><span class="l">Change</span>Added <code>isProjectJudgmentQuery</code> and a judgment mode: name one project first, no disclaimers, speak as the machine, not as Zai.</div>
+      <div class="row"><span class="l">Same prompt</span>
+        <div class="out"><mark>Pet Space is the weakest pick.</mark> It has a genuine ESP32-C3, radar, PIR, and speaker prototype, but the documented loop stops at presence-to-ambient cue…</div></div>
+    </div>
+  </div>
+  <div class="res">
+    <p><span class="big">6/6 → 0/6</span>disclaimer-first openings, 3 English and 3 Chinese runs per version.</p>
+    <p><span class="big">Unstable</span>The “weakest” pick changes from run to run.</p>
+  </div>
+  <span class="pg">05</span>
+  <aside class="notes">
+    Asked which project I like least, version three said, in effect, "I can't claim a preference". Honest, but useless, and not how I would answer.
+    My fix separates two things: my private feelings, which the machine does not have, and the machine's evidence-based judgment, which it can make. Version four, commit 61e5e41, adds a judgment mode: name one project in the first sentence, no disclaimers, judge the mechanism, speak as the machine.
+    I re-ran both commits for this talk, three English and three Chinese prompts each. Disclaimer-first openings went from six of six to zero of six. Still unresolved: the project picked as weakest changes between runs — Pet Space twice and Fragments of the Forest in v4, and Urban Mirage in a later v5 run.
+    The repo did not store earlier outputs, so these come from running the actual commits.
+  </aside>
+</section>
+
+<!-- 6 · REFLECTION -->
+<section class="slide" id="s6">
+  <h2>What does it mean to design <em>a Mini-Me?</em></h2>
+  <div class="grid">
+    <div class="box"><h3>Method</h3><ul>
+      <li>Wrote how I judge as 12 traits and 9 facts</li>
+      <li>Removed private retrieval; reviewed the profile by hand</li>
+      <li>Wrapped one model call in fixed code</li>
+      <li>Tested with 16 prompts, revised v3 → v4</li></ul></div>
+    <div class="box"><h3>Learned</h3><ul>
+      <li>Behavior, not biography</li>
+      <li>Fixed scaffolding makes it testable</li>
+      <li>Honest isn’t enough: a true disclaimer broke the character</li></ul></div>
+    <div class="box fill"><h3>Next</h3><ul>
+      <li>Score the 7-criteria rubric</li>
+      <li>Repeat runs to stabilize the “weakest” pick</li>
+      <li>Add retries to the test runner</li>
+      <li>Check that cited facts are faithful, not just valid</li></ul></div>
+  </div>
+  <p class="q">If an AI learns how I think, should it always think like me?</p>
+  <p class="links"><a href="https://minimi-neon.vercel.app/">minimi-neon.vercel.app</a> &nbsp;·&nbsp; <a href="https://github.com/zayyyseuc/minimi">github.com/zayyyseuc/minimi</a></p>
+  <span class="pg">06</span>
+  <aside class="notes">
+    Method: I wrote how I judge as explicit rules — twelve behavioral traits and nine public facts — instead of feeding the model my notes. I removed private retrieval and reviewed the profile by hand. I wrapped a single model call in fixed code that checks input and output. Then I tested it with sixteen fixed prompts and eleven unit tests, and revised the behavior from what failed: v3 to v4.
+    Learned: a persona works as behaviors plus boundaries, not a biography. Fixed rules around the model are what make a probabilistic system testable. And an honest answer can still be the wrong one if it breaks the character.
+    Next, and what is still open: score the human rubric, which I have not done. Run repeated trials, because the "weakest project" pick still changes between runs. Add retries to the test runner, which crashed once on a single bad reply. And check that cited facts are faithful to the profile, not only that the ID exists.
+    Throughout, I still decide what is public, which facts are approved, whether an answer is good, and when to ship.
+    Close on the question: if an AI learns how I think, should it always think like me? The machine can borrow my way of judging, but where it should disagree with me, or stop, is still my decision.
+  </aside>
+</section>
+
+</div></div>
+<div id="bar"><i></i></div>
+<div id="hud">← → navigate · F fullscreen · N notes</div>
+<div id="notes"></div>
+
+<script>
+(() => {
+  const slides = [...document.querySelectorAll('.slide')];
+  const stage = document.getElementById('stage'), bar = document.querySelector('#bar i'),
+        notes = document.getElementById('notes'), hud = document.getElementById('hud');
+  let i = 0;
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = `scale(${s})`;
+    stage.style.margin = `${-(1080 * (1 - s)) / 2}px ${-(1920 * (1 - s)) / 2}px`;
+  }
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((el, k) => el.classList.toggle('active', k === i));
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+    const a = slides[i].querySelector('.notes');
+    notes.innerHTML = '<b>SPEAKER NOTES · ' + (i + 1) + '</b>' + (a ? a.innerHTML : '');
+    try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) {}
+  }
+  addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key;
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(k)) { e.preventDefault(); show(i + 1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(k)) { e.preventDefault(); show(i - 1); }
+    else if (k === 'Home') show(0);
+    else if (k === 'End') show(slides.length - 1);
+    else if (k === 'f' || k === 'F') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+    else if (k === 'n' || k === 'N') notes.classList.toggle('show');
+    else if (/^[1-6]$/.test(k)) show(Number(k) - 1);
+  });
+  addEventListener('resize', fit);
+  document.addEventListener('click', e => { if (e.target.closest('a')) return; show(i + (e.clientX > innerWidth / 2 ? 1 : -1)); });
+  setTimeout(() => { hud.style.opacity = 0; }, 4000);
+  fit();
+  show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+})();
+</script>
+</body>
+</html>

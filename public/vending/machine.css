@@ -243,3 +243,18 @@ button { color: inherit; }
   .cabinet-glass, .product-grid, .console, .cabinet-glass::after { transform: none; }
   body { background-position: 0 0; }
 }
+
+/* Agent activity and human checkpoints */
+.agent-log { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; font: 700 10px/1.35 ui-monospace, Menlo, monospace; }
+.agent-log[hidden] { display: none; }
+.agent-log li { display: grid; grid-template-columns: 14px 1fr; gap: 4px; }
+.agent-log li::before { content: "·"; font-weight: 900; }
+.agent-log li.human::before { content: "?"; }
+.agent-log li.you::before { content: ">"; }
+.agent-log li.tool { opacity: .7; }
+.calibration-draft { margin: 0 0 12px; padding: 10px; border: 2px solid var(--ink); background: #fffdf6; display: grid; gap: 6px; }
+.calibration-draft[hidden] { display: none; }
+.calibration-draft b { font: 900 12px/1.2 sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.calibration-draft span { font: 600 13px/1.5 Georgia, serif; white-space: pre-wrap; }
+.calibration-keep { width: 100%; margin-top: 9px; min-height: 34px; padding: 7px; border: 2px dashed var(--ink); background: transparent; cursor: pointer; font: 900 8px/1.1 sans-serif; letter-spacing: .06em; }
+.calibration-keep[hidden] { display: none; }

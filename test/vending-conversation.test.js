@@ -48,7 +48,7 @@ test('extraction attempts bypass calibration and never require a model call', as
 test('public status advertises the bounded confirmation flow', () => {
   const status = statusPayload();
   assert.equal(status.conversation.enabled, true);
-  assert.equal(status.conversation.maxClarifications, 1);
+  assert.equal(status.conversation.maxClarifications, 2);
   assert.equal(status.conversation.maxReplyLength, 600);
 });
 

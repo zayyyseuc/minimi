@@ -2,9 +2,25 @@ const fs = require('fs');
 const path = require('path');
 
 const { generateProduct } = require('../src/vending/generator');
+const { startConversation, continueConversation } = require('../src/vending/conversation');
 
 const cases = JSON.parse(fs.readFileSync(path.join(__dirname, '../test/vending-evaluation-cases.json'), 'utf8'));
 const args = process.argv.slice(2);
+
+const oneShot = args.includes('--oneshot');
+
+/** Drives the real agent with a visitor who approves every checkpoint. */
+async function runAgentSession(testCase) {
+  let turn = await startConversation({ input: testCase.input, product: testCase.product });
+  for (let guard = 0; guard < 30 && turn.type !== 'artifact'; guard += 1) {
+    let action = 'continue';
+    if (turn.type === 'clarification') action = 'skip';
+    else if (turn.type === 'confirmation') action = 'dispense';
+    turn = await continueConversation({ stateToken: turn.stateToken, action });
+  }
+  if (turn.type !== 'artifact') throw new Error(`Agent did not finish for ${testCase.id}`);
+  return turn;
+}
 
 function option(name) {
   const index = args.indexOf(name);
@@ -57,7 +73,9 @@ async function main() {
   const results = [];
   for (const testCase of selected) {
     for (let run = 1; run <= repeat; run += 1) {
-      const artifact = await generateProduct({ input: testCase.input, product: testCase.product });
+      const artifact = oneShot
+        ? await generateProduct({ input: testCase.input, product: testCase.product })
+        : await runAgentSession(testCase);
       const checks = validate(testCase, artifact);
       results.push({
         id: testCase.id,
@@ -65,7 +83,7 @@ async function main() {
         run,
         pass: checks.every(check => check.pass),
         checks,
-        output: { title: artifact.title, message: artifact.message, factTrace: artifact.factTrace || [] },
+        output: { title: artifact.title, message: artifact.message, factTrace: artifact.factTrace || [], agent: artifact.agent || null },
       });
       console.log(`${checks.every(check => check.pass) ? 'PASS' : 'FAIL'} ${testCase.id} run ${run}`);
     }

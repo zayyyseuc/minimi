@@ -1,5 +1,6 @@
-const { generateProduct, PRODUCTS, PROMPT_VERSION } = require('./generator');
-const { MAX_CLARIFICATIONS, MAX_REPLY_LENGTH, startConversation, continueConversation } = require('./conversation');
+const { generateProduct, PRODUCTS } = require('./generator');
+const { AGENT_VERSION, LIMITS, TOOLS } = require('./agent');
+const { MAX_CLARIFICATIONS, MAX_REPLY_LENGTH, MAX_TOKEN_LENGTH, startConversation, continueConversation } = require('./conversation');
 const { getBehavioralProfile, getPublicFacts, getPublicBasis } = require('./public-profile');
 
 const attempts = new Map();
@@ -26,11 +27,11 @@ function validInput(value) {
 }
 
 function validStateToken(value) {
-  return typeof value === 'string' && value.length >= 20 && value.length <= 12000;
+  return typeof value === 'string' && value.length >= 20 && value.length <= MAX_TOKEN_LENGTH;
 }
 
 function rateLimited(key) {
-  const limit = Number(process.env.VENDING_RATE_LIMIT || 24);
+  const limit = Number(process.env.VENDING_RATE_LIMIT || 60);
   const now = Date.now();
   const recent = (attempts.get(key) || []).filter(time => now - time < WINDOW_MS);
   if (recent.length >= limit) return true;
@@ -51,10 +52,11 @@ function statusPayload() {
     personalized: true,
     profileVersion: profile.version,
     publicProfileVersion: getPublicBasis().profileVersion,
-    promptVersion: PROMPT_VERSION,
+    promptVersion: AGENT_VERSION,
     publicFactCount: getPublicFacts().length,
     basis: getPublicBasis(),
     conversation: { enabled: true, maxClarifications: MAX_CLARIFICATIONS, maxReplyLength: MAX_REPLY_LENGTH },
+    agent: { enabled: true, tools: TOOLS, humanCheckpoints: ['ask_visitor', 'propose_plan', 'present_draft'], limits: { asks: LIMITS.maxAsks, planRedirects: LIMITS.maxPlanRedirects, draftFeedbackRounds: LIMITS.maxFeedbackRounds, totalSteps: LIMITS.totalSteps } },
     products: Object.entries(PRODUCTS).map(([id, product]) => ({ id, label: product.label, format: product.format })),
   };
 }
