@@ -2,22 +2,25 @@ const crypto = require('crypto');
 
 const { getBehavioralProfile, getPublicBasis } = require('./public-profile');
 
-const AGENT_VERSION = 'vending-agent-v1';
+const AGENT_VERSION = 'vending-agent-v2';
 
 const PRODUCTS = {
   reality_check: {
     label: 'REALITY CHECK',
     format: 'receipt',
+    fitsWhen: 'the visitor asks whether something works, is good, is worth doing, or will hold up; they want judgment.',
     instruction: 'Identify exactly one consequential weakness, hidden assumption, contradiction, or missing mechanism. Be direct and constructive. A small dry joke is welcome only if it sharpens the point. End with one concrete question or test.',
   },
   unexpected_connection: {
     label: 'UNEXPECTED CONNECTION',
     format: 'card',
+    fitsWhen: 'the visitor wants to understand or explain something from a new angle; they want a fresh way of seeing it.',
     instruction: 'Connect the input to one seemingly distant, publicly known concept or domain. Make the bridge surprising but defensible, and explain the mechanism of the connection. Never imply the connection came from a private note.',
   },
   wild_card: {
     label: 'WILD CARD',
     format: 'capsule',
+    fitsWhen: 'the visitor wants something to try, play with, or make; they want an action or experiment.',
     instruction: 'Dispense one strange but usable creative intervention, constraint, role reversal, or experiment. It may be absurd, but its relationship to the input must remain legible and it should invite action.',
   },
 };
