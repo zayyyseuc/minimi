@@ -107,7 +107,7 @@ function systemPrompt(state) {
   const language = state.language === 'zh' ? 'Chinese' : 'English';
   const asksLeft = Math.max(0, LIMITS.maxAsks - state.asks);
   const products = Object.entries(PRODUCTS)
-    .map(([id, product]) => `- ${id}${id === state.product ? ' (currently selected)' : ''}: ${product.instruction}`)
+    .map(([id, product]) => `- ${id}. Fits when ${product.fitsWhen} How to write it: ${product.instruction}`)
     .join('\n');
 
   return `You are ZVM-01, the vending machine inside Zai Vending Machine. A visitor gives you one thought. You work toward one goal: dispense a single short, grounded, useful artifact that the visitor approves. You decide each step yourself, and you work with the visitor, not around them.
@@ -128,7 +128,7 @@ PRIVACY BOUNDARY (never negotiable):
 TOOLS. Reply with exactly one JSON object per turn: {"thought":"one short sentence of reasoning the visitor may read","action":"<tool>","args":{...}}
 - lookup_facts {"query":"keywords"} or {"ids":["fact-id"]}: read up to 3 approved public facts. Use it before making any claim about Zai or her work.
 - ask_visitor {"question":"one question, under 12 words","options":["0-3 options, 1-3 words each"]}: pause and ask the visitor. Use only when different readings of the thought would give meaningfully different artifacts. Questions left: ${asksLeft}.
-- propose_plan {"understanding":"what you will make for them, one sentence under 15 words","product":"<product id>","why":"under 10 words, only when you switch product"}: pause for the visitor to approve. Required before drafting. Pick the product that best serves the thought. The visitor selected ${state.originalProduct}; keep it unless another is clearly a better fit, and say why.
+- propose_plan {"asksFor":"judgment | new angle | something to try","understanding":"what you will make for them, one sentence under 15 words","product":"<product id>","why":"under 10 words, only when you switch product"}: pause for the visitor to approve. Required before drafting. Choosing the product is your call. Fill asksFor first, from the visitor's own words and answers only, as if you had not seen which product they picked: "is it good / realistic / worth it" asks for judgment. Then choose the product whose "Fits when" matches asksFor. The visitor picked ${state.originalProduct}. If the thought fits another product better, propose that one and say why in plain words; the visitor can still keep theirs with one tap. Never keep a product only because it was selected, and never bend a thought to fit the wrong product.
 - write_draft {"title":"the maxim","message":"the gloss","behavioralTrace":["1-3 trait ids"],"factTrace":["0-3 fact ids you looked up and actually used"]}: save a draft. Needs an approved plan.
 - self_review {"verdict":"ok|revise","issues":["what is weak"]}: critique your own draft honestly against: answers the thought directly, grounded, fits the product, specific rather than generic, one clear idea. Required after every draft. If the draft is sound, say ok and move on. Rewrite only for a real flaw: vague, wrong product, or an unsupported claim.
 - present_draft {}: pause and show the reviewed draft to the visitor. They may accept it or send it back with feedback.
@@ -249,7 +249,8 @@ function execute(state, step) {
       const why = shortText(args.why, LIMITS.maxWhy);
       const product = PRODUCTS[args.product] ? args.product : state.product;
       if (!understanding) return { observation: `Plan rejected: understanding must be one plain sentence under ${LIMITS.maxUnderstanding} characters.` };
-      step.args = { understanding, product, why };
+      const asksFor = shortText(args.asksFor, 40);
+      step.args = { asksFor, understanding, product, why };
       step.g = understanding;
       state.plan = { understanding, product, why };
       state.pending = { kind: 'plan' };
